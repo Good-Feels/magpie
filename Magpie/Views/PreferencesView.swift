@@ -20,6 +20,6 @@ struct PreferencesView: View {
                 }
         }
         .padding(.top, 8)
-        .frame(width: 420, height: 400)
+        .frame(width: 440, height: 480)
     }
 }

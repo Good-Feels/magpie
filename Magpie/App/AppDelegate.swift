@@ -123,7 +123,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Magpie Settings"
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 420, height: 420))
+        window.setContentSize(NSSize(width: 440, height: 480))
         window.center()
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
