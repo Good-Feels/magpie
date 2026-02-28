@@ -14,6 +14,9 @@ struct ClipItemRow: View {
     let onDelete: () -> Void
     let onTogglePin: () -> Void
 
+    @AppStorage("showSourceApp") private var showSourceApp: Bool = true
+    @AppStorage("showTimestamps") private var showTimestamps: Bool = true
+
     @State private var appIcon: NSImage?
 
     var body: some View {
@@ -57,18 +60,23 @@ struct ClipItemRow: View {
                 contentPreview
 
                 HStack(spacing: 6) {
-                    if let appName = item.sourceAppName {
+                    if showSourceApp, let appName = item.sourceAppName {
                         Text(appName)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                     }
 
-                    Text("\u{00B7}")
-                        .foregroundColor(.secondary.opacity(0.5))
+                    if showSourceApp && showTimestamps
+                        && item.sourceAppName != nil {
+                        Text("\u{00B7}")
+                            .foregroundColor(.secondary.opacity(0.5))
+                    }
 
-                    Text(item.createdAt, style: .relative)
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary.opacity(0.7))
+                    if showTimestamps {
+                        Text(item.createdAt, style: .relative)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
 
                     if item.isPinned {
                         Image(systemName: "pin.fill")

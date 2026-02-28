@@ -26,23 +26,25 @@ public struct ClipItemRepository: Sendable {
     // MARK: - Read
 
     /// Fetches all clips ordered by: pinned first, then newest first.
-    public func fetchAll(limit: Int = 200) throws -> [ClipItem] {
+    /// Pass `limit: nil` (the default) for no cap — the history limit
+    /// is enforced at write time by `enforceHistoryLimit`, not at read time.
+    public func fetchAll(limit: Int? = nil) throws -> [ClipItem] {
         try dbPool.read { db in
-            try ClipItem
+            var request = ClipItem
                 .order(
                     ClipItem.Columns.isPinned.desc,
                     ClipItem.Columns.createdAt.desc
                 )
-                .limit(limit)
-                .fetchAll(db)
+            if let limit { request = request.limit(limit) }
+            return try request.fetchAll(db)
         }
     }
 
     /// Searches clips whose text content contains the given query (case-insensitive).
-    public func search(query: String, limit: Int = 200) throws -> [ClipItem] {
+    public func search(query: String, limit: Int? = nil) throws -> [ClipItem] {
         let pattern = "%\(query)%"
         return try dbPool.read { db in
-            try ClipItem
+            var request = ClipItem
                 .filter(
                     ClipItem.Columns.contentText.like(pattern)
                     || ClipItem.Columns.previewText.like(pattern)
@@ -51,8 +53,8 @@ public struct ClipItemRepository: Sendable {
                     ClipItem.Columns.isPinned.desc,
                     ClipItem.Columns.createdAt.desc
                 )
-                .limit(limit)
-                .fetchAll(db)
+            if let limit { request = request.limit(limit) }
+            return try request.fetchAll(db)
         }
     }
 

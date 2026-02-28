@@ -29,25 +29,62 @@ final class AppState: ObservableObject {
     /// Callback set by AppDelegate to open the settings window.
     var onOpenSettings: (() -> Void)?
 
+    /// True when the database failed to initialise and the app is running
+    /// in a degraded mode (no persistence, monitoring still works for the session).
+    @Published var databaseError: String?
+
     // MARK: - Dependencies
 
-    let databaseManager: DatabaseManager
-    let repository: ClipItemRepository
+    private(set) var databaseManager: DatabaseManager?
+    private(set) var repository: ClipItemRepository?
     let monitor: ClipboardMonitor
     let exclusionManager: ExclusionListManager
 
     // MARK: - Init
 
     init() {
-        do {
-            databaseManager = try DatabaseManager()
-        } catch {
-            fatalError("Failed to initialise database: \(error)")
-        }
-        repository = ClipItemRepository(dbPool: databaseManager.dbPool)
         monitor = ClipboardMonitor(pollInterval: 0.5)
         exclusionManager = ExclusionListManager()
+
+        do {
+            let dbManager = try DatabaseManager()
+            databaseManager = dbManager
+            repository = ClipItemRepository(dbPool: dbManager.dbPool)
+        } catch {
+            // First failure — try to recover by resetting the database
+            print("[Magpie] Database init failed: \(error). Attempting recovery...")
+            do {
+                try Self.resetDatabaseFile()
+                let dbManager = try DatabaseManager()
+                databaseManager = dbManager
+                repository = ClipItemRepository(dbPool: dbManager.dbPool)
+                print("[Magpie] Database recovered successfully (history was reset).")
+            } catch {
+                // Recovery failed — run in degraded mode
+                print("[Magpie] Database recovery failed: \(error). Running without persistence.")
+                databaseManager = nil
+                repository = nil
+                databaseError = error.localizedDescription
+            }
+        }
+
         loadClips()
+    }
+
+    /// Deletes the database file so it can be recreated fresh.
+    private static func resetDatabaseFile() throws {
+        let appSupportURL = try FileManager.default
+            .url(for: .applicationSupportDirectory, in: .userDomainMask,
+                 appropriateFor: nil, create: false)
+            .appendingPathComponent("Magpie", isDirectory: true)
+
+        let fm = FileManager.default
+        for suffix in ["clipboard.sqlite", "clipboard.sqlite-wal", "clipboard.sqlite-shm"] {
+            let path = appSupportURL.appendingPathComponent(suffix).path
+            if fm.fileExists(atPath: path) {
+                try fm.removeItem(atPath: path)
+            }
+        }
     }
 
     // MARK: - Monitoring
@@ -96,7 +133,7 @@ final class AppState: ObservableObject {
         else { return }
 
         // Skip consecutive duplicates
-        if let isDup = try? repository.isDuplicate(of: text), isDup { return }
+        if let isDup = try? repository?.isDuplicate(of: text), isDup { return }
 
         var item = ClipItem(
             contentText: text,
@@ -121,7 +158,7 @@ final class AppState: ObservableObject {
 
         // Dedup on the plain text representation
         if let text = plainText,
-           let isDup = try? repository.isDuplicate(of: text), isDup {
+           let isDup = try? repository?.isDuplicate(of: text), isDup {
             return
         }
 
@@ -181,7 +218,7 @@ final class AppState: ObservableObject {
         let fileName = url.lastPathComponent
 
         // Dedup on the file path
-        if let isDup = try? repository.isDuplicate(of: path), isDup { return }
+        if let isDup = try? repository?.isDuplicate(of: path), isDup { return }
 
         var item = ClipItem(
             contentText: path,
@@ -197,6 +234,7 @@ final class AppState: ObservableObject {
     }
 
     private func saveClip(_ item: inout ClipItem) {
+        guard let repository else { return }
         do {
             try repository.insert(&item)
 
@@ -215,7 +253,7 @@ final class AppState: ObservableObject {
     // MARK: - Data Access
 
     func loadClips() {
-        clips = (try? repository.fetchAll()) ?? []
+        clips = (try? repository?.fetchAll()) ?? []
         updateDisplayedClips()
     }
 
@@ -224,7 +262,7 @@ final class AppState: ObservableObject {
         if query.isEmpty {
             displayedClips = clips
         } else {
-            displayedClips = (try? repository.search(query: query)) ?? []
+            displayedClips = (try? repository?.search(query: query)) ?? []
         }
     }
 
@@ -281,7 +319,7 @@ final class AppState: ObservableObject {
     /// Toggles the pin state on a clip.
     func togglePin(_ item: ClipItem) {
         do {
-            try repository.togglePin(item)
+            try repository?.togglePin(item)
             loadClips()
         } catch {
             print("[Magpie] Failed to toggle pin: \(error)")
@@ -291,7 +329,7 @@ final class AppState: ObservableObject {
     /// Deletes a single clip and refreshes the list.
     func deleteClip(_ item: ClipItem) {
         do {
-            try repository.delete(item)
+            try repository?.delete(item)
             loadClips()
         } catch {
             print("[Magpie] Failed to delete clip: \(error)")
@@ -301,7 +339,7 @@ final class AppState: ObservableObject {
     /// Deletes all clips and refreshes the list.
     func clearAll() {
         do {
-            try repository.deleteAll()
+            try repository?.deleteAll()
             loadClips()
         } catch {
             print("[Magpie] Failed to clear clips: \(error)")

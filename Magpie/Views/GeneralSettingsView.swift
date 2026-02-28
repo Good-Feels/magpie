@@ -42,7 +42,7 @@ struct GeneralSettingsView: View {
             .padding(.horizontal, 4)
             .onChange(of: maxHistorySize) { newValue in
                 if newValue > 0 {
-                    try? appState.repository.enforceHistoryLimit(newValue)
+                    try? appState.repository?.enforceHistoryLimit(newValue)
                     appState.loadClips()
                 }
             }
