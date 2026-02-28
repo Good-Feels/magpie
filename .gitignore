@@ -1,0 +1,35 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+xcuserdata/
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+*.xcodeproj
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# App data
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Distribution artifacts
+dist/
+
+# Dev .app bundle binary (built by run.sh)
+Magpie.app/Contents/MacOS/
