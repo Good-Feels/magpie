@@ -167,10 +167,14 @@ fi
 
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST")"
 BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST")"
+BUNDLE_ID="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$INFO_PLIST")"
 
 echo "==> Cleaning dist..."
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
+
+RESOLVED_ENTITLEMENTS="$DIST_DIR/.resolved.entitlements"
+sed "s|\\\$(PRODUCT_BUNDLE_IDENTIFIER)|$BUNDLE_ID|g" "$ENTITLEMENTS_FILE" > "$RESOLVED_ENTITLEMENTS"
 
 echo "==> Building release binary..."
 cd "$PROJECT_DIR"
@@ -203,7 +207,7 @@ if [[ -n "$SIGN_IDENTITY" ]]; then
     echo "==> Signing app with: $SIGN_IDENTITY"
     codesign --force --deep --options runtime \
         --sign "$SIGN_IDENTITY" \
-        --entitlements "$ENTITLEMENTS_FILE" \
+        --entitlements "$RESOLVED_ENTITLEMENTS" \
         "$APP_BUNDLE"
 
     echo "==> Verifying app signature..."
