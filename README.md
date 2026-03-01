@@ -119,10 +119,12 @@ Requires Xcode 15+ and macOS 13+.
 
 ## Roadmap
 
-- [ ] Global keyboard shortcut (Cmd+Shift+V)
+- [x] Global keyboard shortcut to toggle history
+- [x] First-launch onboarding and clipboard permission guidance
+- [x] Signed/notarized direct release pipeline (DMG + appcast)
 - [ ] Keyboard navigation (arrow keys + Enter)
 - [ ] Paste directly into frontmost app
-- [x] Sparkle auto-updates
+- [x] Sparkle auto-updates (direct download)
 - [ ] Mac App Store submission
 - [ ] CLI (`magpie list`, `magpie search`, `magpie copy`)
 - [ ] Snippets / templates
