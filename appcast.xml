@@ -23,8 +23,16 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Good-Feels/magpie/releases/download/v1.0.1/Magpie.dmg" length="5294134" type="application/x-apple-diskimage" sparkle:edSignature="1s1/64gNm+Y5/XQT8goYdFhWMelbjMnk/uk3E4ccBnU3VCFnDZbJTVtCnd3lNyamwjZHxk2CT5LuI3vuLBS7Cg==" />
         </item>
+        <item>
+            <title>Magpie 1.0.2</title>
+            <pubDate>Sun, 01 Mar 2026 22:32:56 +0000</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Good-Feels/magpie/releases/download/v1.0.2/Magpie.dmg" length="5293906" type="application/x-apple-diskimage" sparkle:edSignature="ZjdQv3g4CiSnnzfzCKhtt/w8zTJoPN54es2aEURO098exl1Rh212/fEnFC9jl8FBUEtLb3DHOgtGDSaMkj6xDQ==" />
+        </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: Dyku/x5YEwH6j0s63OpaJO07bdnNMvpDDv+7KWYNv/SSVv8njPzJUX6sms0Zvm4iNkvFReJPad36prgM7kWCAQ==
-length: 1936
+edSignature: qL1ghUOuHn6RvltCznbbrw0qjyocawb8K4G6tD/i4QyoMSPSFqlIUjNtTgjZmIyXWOQevBQuRAYOXzNHMF3VCw==
+length: 2542
 -->
