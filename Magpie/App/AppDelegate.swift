@@ -6,6 +6,7 @@ import ClipboardEngine
 ///   • Creating the menu bar status item + popover
 ///   • Hiding the Dock icon (agent app)
 ///   • Starting/stopping clipboard monitoring
+///   • Showing first-launch onboarding
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
@@ -13,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private var settingsWindow: NSWindow?
+    private var onboardingWindow: NSWindow?
     private var eventMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,6 +32,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         appState.onOpenSettings = { [weak self] in
             self?.openSettings()
+        }
+
+        // Show onboarding on first launch
+        if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+            showOnboarding()
         }
     }
 
@@ -80,6 +87,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showPopover() {
         guard let button = statusItem.button else { return }
+        // Refresh clipboard access state each time the popover opens
+        appState.accessChecker.checkAccess()
         appState.loadClips()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
 
@@ -104,6 +113,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Onboarding
+
+    private func showOnboarding() {
+        let onboardingView = OnboardingView(
+            accessChecker: appState.accessChecker
+        ) { [weak self] in
+            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            self?.onboardingWindow?.close()
+            self?.onboardingWindow = nil
+        }
+
+        let hostingController = NSHostingController(rootView: onboardingView)
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "Welcome to Magpie"
+        window.styleMask = [.titled, .closable]
+        window.setContentSize(NSSize(width: 400, height: 480))
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+
+        NSApp.activate(ignoringOtherApps: true)
+        onboardingWindow = window
+    }
+
     // MARK: - Settings Window
 
     func openSettings() {
@@ -123,7 +156,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Magpie Settings"
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 440, height: 480))
+        window.setContentSize(NSSize(width: 440, height: 540))
         window.center()
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)

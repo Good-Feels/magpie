@@ -21,7 +21,9 @@ struct ClipboardHistoryView: View {
             Divider()
 
             // ── Clip List ───────────────────────────────────────────
-            if appState.displayedClips.isEmpty {
+            if !appState.accessChecker.hasAccess {
+                ClipboardPermissionView(accessChecker: appState.accessChecker)
+            } else if appState.displayedClips.isEmpty {
                 emptyState
             } else {
                 clipList

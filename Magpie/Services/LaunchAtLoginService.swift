@@ -5,8 +5,8 @@ import SwiftUI
 /// Wraps `SMAppService` to manage the "Launch at Login" preference.
 /// Requires macOS 13+ and a valid app bundle with a CFBundleIdentifier.
 ///
-/// On first launch, login item is enabled by default. Users can disable
-/// it in Settings. The choice is remembered across launches.
+/// Login item defaults to OFF on first launch (MAS-safe). The onboarding
+/// flow prompts the user to enable it. Choice is remembered across launches.
 @MainActor
 final class LaunchAtLoginService: ObservableObject {
     @Published var isEnabled: Bool {
@@ -17,34 +17,21 @@ final class LaunchAtLoginService: ObservableObject {
     }
 
     init() {
-        let status = SMAppService.mainApp.status
-        let hasBeenConfigured = UserDefaults.standard.bool(forKey: "hasConfiguredLoginItem")
-
-        if status == .enabled {
-            // Already registered — keep it on
-            isEnabled = true
-        } else if !hasBeenConfigured {
-            // First launch — enable by default
-            isEnabled = true
-            UserDefaults.standard.set(true, forKey: "hasConfiguredLoginItem")
-            // didSet isn't called during init, so register manually
-            try? SMAppService.mainApp.register()
-        } else {
-            // User previously disabled it — respect their choice
-            isEnabled = false
-        }
+        // Just reflect the current system state — no auto-registration
+        isEnabled = SMAppService.mainApp.status == .enabled
     }
 
-    // MARK: - Private
+    // MARK: - Public
 
-    private func setLoginItem(enabled: Bool) {
+    /// Registers or unregisters the login item. Called from didSet and
+    /// also from the onboarding flow.
+    func setLoginItem(enabled: Bool) {
         do {
             if enabled {
                 try SMAppService.mainApp.register()
             } else {
                 try SMAppService.mainApp.unregister()
             }
-            UserDefaults.standard.set(true, forKey: "hasConfiguredLoginItem")
         } catch {
             print("[Magpie] Launch at login error: \(error)")
             // Revert on failure without re-triggering didSet

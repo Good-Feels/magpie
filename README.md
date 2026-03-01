@@ -52,15 +52,21 @@ You have something important on your clipboard. Now you need to copy something e
 - **Pin favorites** — Keep your most-used clips at the top
 - **App exclusions** — Exclude password managers and other sensitive apps
 - **Lightweight** — Lives in your menu bar, uses SQLite, under 2MB
+- **Auto-updates** — Direct downloads update automatically via Sparkle
 - **Private** — Everything stays on your Mac. No cloud, no telemetry, no accounts
 
 ## Install
 
-### Download (Recommended)
+### Mac App Store
+
+*Coming soon*
+
+### Download (Direct)
 
 1. Download `Magpie.dmg` from the [latest release](https://github.com/Good-Feels/magpie/releases/latest)
 2. Open the DMG and drag **Magpie** to your Applications folder
 3. Launch Magpie — it appears in your menu bar (no Dock icon)
+4. The direct download version includes automatic updates via Sparkle
 
 ### Build from Source
 
@@ -89,7 +95,9 @@ Requires Xcode 15+ and macOS 13+.
 - **Swift + SwiftUI** — Native macOS, no Electron
 - **SQLite via [GRDB](https://github.com/groue/GRDB.swift)** — Fast, reliable local storage
 - **NSStatusItem + NSPopover** — Proper menu bar integration
+- **[Sparkle](https://sparkle-project.org)** — Auto-updates for direct distribution
 - **SMAppService** — Launch at login (macOS 13+)
+- **App Sandbox** — Mac App Store compatible
 
 ## Project Structure
 
@@ -103,7 +111,8 @@ Requires Xcode 15+ and macOS 13+.
 ├── Magpie/                          # App target
 │   ├── App/                         # AppDelegate, AppState, entry point
 │   ├── Views/                       # SwiftUI views
-│   └── Services/                    # Launch at login, exclusions
+│   ├── Services/                    # Launch at login, exclusions, updater
+│   └── Magpie.entitlements          # App Sandbox for MAS compatibility
 ├── run.sh                           # Build & run for development
 └── scripts/build-release.sh         # Build signed DMG for distribution
 ```
@@ -113,7 +122,8 @@ Requires Xcode 15+ and macOS 13+.
 - [ ] Global keyboard shortcut (Cmd+Shift+V)
 - [ ] Keyboard navigation (arrow keys + Enter)
 - [ ] Paste directly into frontmost app
-- [ ] Sparkle auto-updates
+- [x] Sparkle auto-updates
+- [ ] Mac App Store submission
 - [ ] CLI (`magpie list`, `magpie search`, `magpie copy`)
 - [ ] Snippets / templates
 

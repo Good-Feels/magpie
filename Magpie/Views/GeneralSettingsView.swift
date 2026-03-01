@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// General preferences: launch at login, history limits, display options.
+/// General preferences: launch at login, updates, history limits, display options.
 struct GeneralSettingsView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var loginService = LaunchAtLoginService()
+    @StateObject private var updater = SoftwareUpdater()
 
     @AppStorage("maxHistorySize") private var maxHistorySize: Int = 200
     @AppStorage("showSourceApp") private var showSourceApp: Bool = true
@@ -22,6 +23,28 @@ struct GeneralSettingsView: View {
                     Text(loginService.statusDescription)
                         .font(.caption)
                         .foregroundColor(.orange)
+                }
+            }
+            .padding(.horizontal, 4)
+
+            sectionDivider()
+
+            // ── Updates ──────────────────────────────────────────────
+            sectionHeader("Updates")
+            Group {
+                Toggle("Automatically check for updates", isOn: $updater.automaticallyChecksForUpdates)
+
+                HStack(spacing: 8) {
+                    Button("Check for Updates Now") {
+                        updater.checkForUpdates()
+                    }
+                    .disabled(!updater.canCheckForUpdates)
+
+                    if let lastCheck = updater.lastUpdateCheckDate {
+                        Text("Last checked: \(lastCheck, style: .relative) ago")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             .padding(.horizontal, 4)

@@ -39,12 +39,14 @@ final class AppState: ObservableObject {
     private(set) var repository: ClipItemRepository?
     let monitor: ClipboardMonitor
     let exclusionManager: ExclusionListManager
+    let accessChecker: ClipboardAccessChecker
 
     // MARK: - Init
 
     init() {
         monitor = ClipboardMonitor(pollInterval: 0.5)
         exclusionManager = ExclusionListManager()
+        accessChecker = ClipboardAccessChecker()
 
         do {
             let dbManager = try DatabaseManager()
