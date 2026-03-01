@@ -13,10 +13,10 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
             <sparkle:version>1</sparkle:version>
             <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Good-Feels/magpie/releases/download/v1.0.0/Magpie.dmg" length="5283103" type="application/x-apple-diskimage" sparkle:edSignature="Heq6Okf+8Vx2bMBEbHTrEAPSQppsTB1Mcf2pVpH/5YWV4hbIXYKBWsr6oWiHULKqLr/Q/BQWqSxLrGvTISvMBg=="></enclosure>
+            <enclosure url="https://github.com/Good-Feels/magpie/releases/download/v1.0.0/Magpie.dmg" length="5292620" type="application/x-apple-diskimage" sparkle:edSignature="S2M/vVxKPeea1HFJ90QJMnDa1l2QMCw4bVhqclc1KvpdiLMlkBcRYy3DkuZvStdyBPSUrQUEtnuRieGNV2boAw=="></enclosure>
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: YaDDyaEnHTOIbl2jp9D9M3TQzpreffr5BX77R1doMgqXjfjsd7POMkODEgZpjgz4t9xPFeZgbUrXiw+a4GwSAQ==
+edSignature: i+pD8hJG/G4mFCXh7U1CEgrMMYpmoCy0JSQyRmS/bQKX8lO/Gdc+1zhcXCyrHbX4DEVedFMY+44IinscXxdnBA==
 length: 1330
 -->
