@@ -7,6 +7,7 @@ let package = Package(
     dependencies: [
         .package(path: "ClipboardEngine"),
         .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.0.0"),
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", from: "2.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -14,9 +15,14 @@ let package = Package(
             dependencies: [
                 "ClipboardEngine",
                 .product(name: "Sparkle", package: "Sparkle"),
+                "KeyboardShortcuts",
             ],
             path: "Magpie",
-            exclude: ["Magpie.entitlements"]
+            exclude: [
+                "Magpie.entitlements",
+                "Info.plist",
+                "Resources",
+            ]
         ),
     ]
 )

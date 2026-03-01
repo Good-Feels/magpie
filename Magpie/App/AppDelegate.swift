@@ -1,6 +1,8 @@
 import AppKit
 import SwiftUI
+import Combine
 import ClipboardEngine
+import KeyboardShortcuts
 
 /// Application delegate responsible for:
 ///   • Creating the menu bar status item + popover
@@ -16,15 +18,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
     private var eventMonitor: Any?
+    private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Run as a menu-bar-only app (no Dock icon).
         NSApp.setActivationPolicy(.accessory)
+        let bundleID = Bundle.main.bundleIdentifier ?? "unknown"
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        print("[Magpie] Launch: bundleID=\(bundleID) hasCompletedOnboarding=\(hasCompletedOnboarding)")
 
         setupStatusItem()
         setupPopover()
         setupEventMonitor()
-        appState.startMonitoring()
+        setupAccessStateMonitoring()
 
         // Give AppState callbacks for dismiss and settings
         appState.onDismiss = { [weak self] in
@@ -34,9 +40,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.openSettings()
         }
 
-        // Show onboarding on first launch
-        if !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+        // Global hotkey: toggle popover from anywhere
+        KeyboardShortcuts.onKeyUp(for: .toggleClipboardHistory) { [weak self] in
+            self?.togglePopover()
+        }
+
+        // Show onboarding on first launch.
+        if !hasCompletedOnboarding {
+            print("[Magpie] Launch: showing onboarding")
             showOnboarding()
+        } else {
+            print("[Magpie] Launch: onboarding skipped (already completed)")
         }
     }
 
@@ -113,6 +127,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func setupAccessStateMonitoring() {
+        appState.accessChecker.$accessState
+            .removeDuplicates()
+            .sink { [weak self] state in
+                guard let self else { return }
+                print("[Magpie] accessState changed -> \(state)")
+                switch state {
+                case .allowed:
+                    print("[Magpie] accessState=allowed, starting monitor")
+                    self.appState.startMonitoring()
+                case .needsPermission, .denied:
+                    print("[Magpie] accessState=\(state), stopping monitor")
+                    self.appState.stopMonitoring()
+                }
+            }
+            .store(in: &cancellables)
+
+        // Ensure the current state is reflected immediately.
+        appState.accessChecker.checkAccess()
+    }
+
     // MARK: - Onboarding
 
     private func showOnboarding() {
@@ -156,7 +191,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Magpie Settings"
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 440, height: 540))
+        window.setContentSize(NSSize(width: 560, height: 650))
         window.center()
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)

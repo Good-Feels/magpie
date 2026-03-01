@@ -3,38 +3,44 @@ import SwiftUI
 /// About tab in the preferences window.
 struct AboutView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
+        VStack(alignment: .center, spacing: 16) {
+            VStack(spacing: 12) {
+                Text("🐦‍⬛")
+                    .font(.system(size: 56))
 
-            Text("🐦‍⬛")
-                .font(.system(size: 56))
+                Text("Magpie")
+                    .font(.title2.bold())
 
-            Text("Magpie")
-                .font(.title2.bold())
+                Text("Version 1.0.0")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
 
-            Text("Version 1.0")
-                .font(.caption)
-                .foregroundColor(.secondary)
+                Text("Copy freely. Everything is saved.")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 6)
 
-            Text("Copy freely. Everything is saved.")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
-
-            Divider()
-                .frame(width: 200)
-
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 featureRow(icon: "magnifyingglass", text: "Search your clipboard history")
                 featureRow(icon: "pin.fill", text: "Pin your favorite clips")
-                featureRow(icon: "keyboard", text: "Global keyboard shortcut (coming soon)")
+                featureRow(icon: "keyboard", text: "Global keyboard shortcut")
                 featureRow(icon: "xmark.app", text: "Exclude sensitive apps")
             }
+            .padding(14)
+            .frame(maxWidth: 320)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.primary.opacity(0.045))
+            )
 
-            Spacer()
+            Spacer(minLength: 6)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private func featureRow(icon: String, text: String) -> some View {

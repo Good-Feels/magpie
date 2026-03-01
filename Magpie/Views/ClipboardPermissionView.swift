@@ -26,17 +26,25 @@ struct ClipboardPermissionView: View {
                 .padding(.horizontal, 24)
 
             VStack(spacing: 10) {
-                Button {
-                    accessChecker.openPrivacySettings()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "gear")
-                        Text("Open System Settings")
+                if accessChecker.accessState == .denied {
+                    Button {
+                        accessChecker.openPrivacySettings()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "gear")
+                            Text("Open System Settings")
+                        }
+                        .frame(maxWidth: 200)
                     }
-                    .frame(maxWidth: 200)
+                    .controlSize(.large)
+                    .buttonStyle(.borderedProminent)
                 }
-                .controlSize(.large)
-                .buttonStyle(.borderedProminent)
+
+                Button("Try Prompt Again") {
+                    accessChecker.requestAccess()
+                }
+                .controlSize(.small)
+                .buttonStyle(.bordered)
 
                 Button("Check Again") {
                     accessChecker.checkAccess()
@@ -45,7 +53,7 @@ struct ClipboardPermissionView: View {
                 .buttonStyle(.bordered)
             }
 
-            Text("Set Magpie to **\"Allow\"** in:\nSystem Settings > Privacy & Security > Paste from Other Apps")
+            Text(footerText)
                 .font(.system(size: 10))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -62,5 +70,12 @@ struct ClipboardPermissionView: View {
         } else {
             return "Magpie needs permission to read your clipboard so it can save everything you copy. Without this, clipboard history won't work."
         }
+    }
+
+    private var footerText: String {
+        if accessChecker.accessState == .denied {
+            return "If available on your macOS build, allow Magpie in Privacy & Security. Then click Check Again."
+        }
+        return "Copy text or an image in another app, then click Try Prompt Again."
     }
 }

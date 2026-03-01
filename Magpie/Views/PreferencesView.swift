@@ -14,12 +14,19 @@ struct PreferencesView: View {
                     Label("Exclusions", systemImage: "xmark.app")
                 }
 
+            ShortcutSettingsView()
+                .tabItem {
+                    Label("Shortcuts", systemImage: "keyboard")
+                }
+
             AboutView()
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
         }
+        .padding(.horizontal, 14)
         .padding(.top, 8)
-        .frame(width: 440, height: 540)
+        .padding(.bottom, 14)
+        .frame(width: 560, height: 650)
     }
 }

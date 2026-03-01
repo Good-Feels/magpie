@@ -7,53 +7,68 @@ struct AppExclusionsView: View {
     @State private var showingAppPicker = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Excluded Apps")
-                .font(.headline)
-            Text("Clips copied from these apps will not be recorded.")
-                .font(.caption)
-                .foregroundColor(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Excluded Apps")
+                        .font(.title3.weight(.semibold))
+                    Text("Clips copied from these apps will not be recorded.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
 
-            // Current exclusions list
-            if exclusionManager.excludedBundleIDs.isEmpty {
-                Text("No apps excluded.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 20)
-            } else {
-                List {
-                    ForEach(
-                        Array(exclusionManager.excludedBundleIDs).sorted(),
-                        id: \.self
-                    ) { bundleID in
-                        HStack {
-                            appRow(bundleID: bundleID)
-                            Spacer()
-                            Button {
-                                exclusionManager.include(bundleID)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundColor(.red)
+                Group {
+                    if exclusionManager.excludedBundleIDs.isEmpty {
+                        Text("No apps excluded.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 180, alignment: .center)
+                    } else {
+                        List {
+                            ForEach(
+                                Array(exclusionManager.excludedBundleIDs).sorted(),
+                                id: \.self
+                            ) { bundleID in
+                                HStack {
+                                    appRow(bundleID: bundleID)
+                                    Spacer()
+                                    Button {
+                                        exclusionManager.include(bundleID)
+                                    } label: {
+                                        Image(systemName: "minus.circle.fill")
+                                            .foregroundColor(.red)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
-                .frame(minHeight: 80, maxHeight: 160)
-            }
+                .frame(minHeight: 180, maxHeight: 320)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                )
 
-            // Add app button
-            Button {
-                showingAppPicker = true
-            } label: {
-                Label("Add App\u{2026}", systemImage: "plus.circle")
+                HStack {
+                    Button {
+                        showingAppPicker = true
+                    } label: {
+                        Label("Add App\u{2026}", systemImage: "plus.circle")
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Spacer()
+                }
+                .popover(isPresented: $showingAppPicker) {
+                    appPickerPopover
+                }
+
+                Spacer(minLength: 0)
             }
-            .popover(isPresented: $showingAppPicker) {
-                appPickerPopover
-            }
+            .padding(16)
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     // MARK: - Subviews

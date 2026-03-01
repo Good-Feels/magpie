@@ -26,6 +26,7 @@ public final class ClipboardAccessChecker: ObservableObject {
     @Published public private(set) var accessState: AccessState = .allowed
 
     public init() {
+        print("[Magpie] ClipboardAccessChecker init")
         checkAccess()
     }
 
@@ -38,24 +39,16 @@ public final class ClipboardAccessChecker: ObservableObject {
         guard pasteboard.responds(to: selector) else {
             // Pre-15.4: clipboard access is always allowed
             accessState = .allowed
+            print("[Magpie] checkAccess: accessBehavior unavailable (pre-15.4 API), state=allowed")
             return
         }
 
-        // accessBehavior is an Int-backed ObjC enum (NSPasteboard.AccessBehavior):
-        //   0 = allowedWithoutPrompt
-        //   1 = transientUserPrompt
-        //   2 = denied
-        if let rawValue = pasteboard.value(forKey: "accessBehavior") as? Int {
-            switch rawValue {
-            case 0:
-                accessState = .allowed
-            case 2:
-                accessState = .denied
-            default:
-                accessState = .needsPermission
-            }
+        if let rawValue = rawAccessBehavior {
+            accessState = mapRawAccessBehavior(rawValue)
+            print("[Magpie] checkAccess: rawAccessBehavior=\(rawValue) mappedState=\(accessState)")
         } else {
             accessState = .allowed
+            print("[Magpie] checkAccess: rawAccessBehavior unavailable via KVC, state=allowed")
         }
     }
 
@@ -69,10 +62,66 @@ public final class ClipboardAccessChecker: ObservableObject {
         NSPasteboard.general.responds(to: NSSelectorFromString("accessBehavior"))
     }
 
+    /// Triggers a clipboard read to invoke the macOS consent dialog,
+    /// then re-checks the access state after a short delay.
+    public func requestAccess() {
+        let pasteboard = NSPasteboard.general
+        let before = rawAccessBehavior
+        let didReadContent = forceReadClipboardContents(from: pasteboard)
+        print("[Magpie] requestAccess: attempted clipboard read didReadContent=\(didReadContent) beforeRaw=\(before.map(String.init) ?? "n/a")")
+
+        // Re-check after the dialog resolves
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
+            self?.checkAccess()
+            let after = self?.rawAccessBehavior
+            print("[Magpie] Clipboard access check: before=\(before.map(String.init) ?? "n/a") after=\(after.map(String.init) ?? "n/a") state=\(self?.accessState ?? .allowed)")
+        }
+    }
+
     /// Opens System Settings to the Pasteboard privacy pane.
     public func openPrivacySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Pasteboard") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    /// Raw accessBehavior value from AppKit (macOS 15.4+):
+    /// 0 = default, 1 = ask, 2 = alwaysAllow, 3 = alwaysDeny.
+    public var rawAccessBehavior: Int? {
+        NSPasteboard.general.value(forKey: "accessBehavior") as? Int
+    }
+
+    private func mapRawAccessBehavior(_ rawValue: Int) -> AccessState {
+        switch rawValue {
+        case 2:
+            return .allowed
+        case 3:
+            return .denied
+        default:
+            return .needsPermission
+        }
+    }
+
+    /// Reads actual clipboard payload bytes for the first available type.
+    /// This is more reliable than `.string` only when clipboard content isn't text.
+    @discardableResult
+    private func forceReadClipboardContents(from pasteboard: NSPasteboard) -> Bool {
+        if let item = pasteboard.pasteboardItems?.first {
+            for type in item.types {
+                if item.data(forType: type) != nil {
+                    return true
+                }
+            }
+        }
+
+        if let type = pasteboard.types?.first, pasteboard.data(forType: type) != nil {
+            return true
+        }
+
+        if pasteboard.string(forType: .string) != nil {
+            return true
+        }
+
+        return false
     }
 }

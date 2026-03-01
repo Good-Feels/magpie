@@ -2,7 +2,7 @@ import SwiftUI
 import ClipboardEngine
 
 /// The main popover content: search bar at top, scrollable clip history,
-/// and a footer with Clear All / Quit.
+/// and a footer with Settings / Quit.
 struct ClipboardHistoryView: View {
     @EnvironmentObject var appState: AppState
 
@@ -128,16 +128,6 @@ struct ClipboardHistoryView: View {
             .buttonStyle(.plain)
             .foregroundColor(.secondary)
             .help("Settings")
-
-            Button(role: .destructive) {
-                appState.clearAll()
-            } label: {
-                Text("Clear All")
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(.secondary)
-            .disabled(appState.clips.isEmpty)
 
             Spacer()
 

@@ -33,3 +33,16 @@ dist/
 
 # Dev .app bundle binary (built by run.sh)
 Magpie.app/Contents/MacOS/
+Magpie.app/Contents/Frameworks/
+Magpie.app/Contents/Resources/
+Magpie.app/Contents/_CodeSignature/
+Magpie.app/Contents/PkgInfo
+Magpie.app/Contents/embedded.provisionprofile
+Magpie.app/Contents/Info.plist
+
+# SwiftPM metadata
+.swiftpm/
+
+# Generated icon artifacts
+Magpie/Resources/AppIcon.icns
+Magpie/Resources/Assets.car

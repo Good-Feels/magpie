@@ -1,128 +1,178 @@
 import SwiftUI
 
-/// General preferences: launch at login, updates, history limits, display options.
+/// General tab in the preferences window.
 struct GeneralSettingsView: View {
     @EnvironmentObject var appState: AppState
-    @StateObject private var loginService = LaunchAtLoginService()
-    @StateObject private var updater = SoftwareUpdater()
+
+    @StateObject private var launchService = LaunchAtLoginService()
+    @StateObject private var softwareUpdater = SoftwareUpdater()
 
     @AppStorage("maxHistorySize") private var maxHistorySize: Int = 200
     @AppStorage("showSourceApp") private var showSourceApp: Bool = true
     @AppStorage("showTimestamps") private var showTimestamps: Bool = true
 
-    @State private var showClearConfirmation = false
+    @State private var moveFeedback: String?
+    @State private var showClearConfirmStep1 = false
+    @State private var showClearConfirmStep2 = false
+    @State private var showClearConfirmStep3 = false
+
+    private let historyOptions = [50, 100, 200, 500, 1000]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // ── Startup ──────────────────────────────────────────────
-            sectionHeader("Startup")
-            Group {
-                Toggle("Launch at Login", isOn: $loginService.isEnabled)
-                if loginService.statusDescription.contains("not found")
-                    || loginService.statusDescription.contains("approval") {
-                    Text(loginService.statusDescription)
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                startupSection
+                updatesSection
+                historySection
+                displaySection
+                dataSection
             }
-            .padding(.horizontal, 4)
-
-            sectionDivider()
-
-            // ── Updates ──────────────────────────────────────────────
-            sectionHeader("Updates")
-            Group {
-                Toggle("Automatically check for updates", isOn: $updater.automaticallyChecksForUpdates)
-
-                HStack(spacing: 8) {
-                    Button("Check for Updates Now") {
-                        updater.checkForUpdates()
-                    }
-                    .disabled(!updater.canCheckForUpdates)
-
-                    if let lastCheck = updater.lastUpdateCheckDate {
-                        Text("Last checked: \(lastCheck, style: .relative) ago")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .padding(.horizontal, 4)
-
-            sectionDivider()
-
-            // ── History ──────────────────────────────────────────────
-            sectionHeader("History")
-            Picker("Max history size", selection: $maxHistorySize) {
-                Text("50 clips").tag(50)
-                Text("100 clips").tag(100)
-                Text("200 clips").tag(200)
-                Text("500 clips").tag(500)
-                Text("1,000 clips").tag(1000)
-                Text("Unlimited").tag(0)
-            }
-            .labelsHidden()
-            .padding(.horizontal, 4)
-            .onChange(of: maxHistorySize) { newValue in
-                if newValue > 0 {
-                    try? appState.repository?.enforceHistoryLimit(newValue)
-                    appState.loadClips()
-                }
-            }
-
-            sectionDivider()
-
-            // ── Display ──────────────────────────────────────────────
-            sectionHeader("Display")
-            Group {
-                Toggle("Show source app name", isOn: $showSourceApp)
-                Toggle("Show timestamps", isOn: $showTimestamps)
-            }
-            .padding(.horizontal, 4)
-
-            sectionDivider()
-
-            // ── Data ─────────────────────────────────────────────────
-            sectionHeader("Data")
-            Button(role: .destructive) {
-                showClearConfirmation = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "trash")
-                    Text("Clear All History")
-                }
-            }
-            .padding(.horizontal, 4)
-            .confirmationDialog(
-                "Clear all clipboard history?",
-                isPresented: $showClearConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Clear All", role: .destructive) {
-                    appState.clearAll()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will permanently delete all saved clips. Pinned clips will also be removed.")
-            }
-
-            Spacer()
+            .padding(16)
         }
-        .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    // MARK: - Helpers
+    private var startupSection: some View {
+        sectionCard("Startup") {
+            Toggle("Launch at Login", isOn: $launchService.isEnabled)
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.subheadline.weight(.semibold))
-            .foregroundColor(.secondary)
-            .padding(.bottom, 6)
+            if shouldShowMoveAction {
+                HStack(spacing: 10) {
+                    Button("Move Magpie to /Applications") {
+                        moveFeedback = nil
+                        launchService.moveToApplicationsAndRelaunch { result in
+                            switch result {
+                            case .moved:
+                                moveFeedback = "Magpie moved and relaunched from /Applications."
+                            case .alreadyInApplications:
+                                moveFeedback = "Magpie is already in /Applications."
+                            case .destinationExists:
+                                moveFeedback = "A Magpie.app already exists in /Applications."
+                            case .failed(let reason):
+                                moveFeedback = reason
+                            }
+                        }
+                    }
+
+                    Button("Reveal Current App") {
+                        launchService.revealCurrentAppInFinder()
+                    }
+                    .buttonStyle(.link)
+                }
+
+                Text(moveFeedback ?? "Run Magpie from /Applications to make Login Items registration reliable.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                Text(launchService.statusDescription)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
     }
 
-    private func sectionDivider() -> some View {
-        Divider()
-            .padding(.vertical, 12)
+    private var updatesSection: some View {
+        sectionCard("Updates") {
+            Toggle("Auto-check for updates", isOn: $softwareUpdater.automaticallyChecksForUpdates)
+
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Button("Check for Updates Now") {
+                    softwareUpdater.checkForUpdates()
+                }
+                .disabled(!softwareUpdater.canCheckForUpdates)
+
+                if let last = softwareUpdater.lastUpdateCheckDate {
+                    Text("Last checked: \(relativeTime(from: last))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    private var historySection: some View {
+        sectionCard("History") {
+            Picker("Keep", selection: $maxHistorySize) {
+                ForEach(historyOptions, id: \.self) { count in
+                    Text("\(count) clips").tag(count)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(maxWidth: 180, alignment: .leading)
+        }
+    }
+
+    private var displaySection: some View {
+        sectionCard("Display") {
+            Toggle("Show source app name", isOn: $showSourceApp)
+            Toggle("Show timestamps", isOn: $showTimestamps)
+        }
+    }
+
+    private var dataSection: some View {
+        sectionCard("Data") {
+            Text("Delete all saved clipboard history from this Mac.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Button("Clear All History") {
+                showClearConfirmStep1 = true
+            }
+            .tint(.red)
+            .alert("Clear all history?", isPresented: $showClearConfirmStep1) {
+                Button("Cancel", role: .cancel) {}
+                Button("Continue", role: .destructive) {
+                    showClearConfirmStep2 = true
+                }
+            } message: {
+                Text("This will delete every saved clip.")
+            }
+            .alert("This cannot be undone", isPresented: $showClearConfirmStep2) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete Everything", role: .destructive) {
+                    showClearConfirmStep3 = true
+                }
+            } message: {
+                Text("Pinned and unpinned clips will all be removed.")
+            }
+            .alert("Final confirmation", isPresented: $showClearConfirmStep3) {
+                Button("Cancel", role: .cancel) {}
+                Button("Clear All History", role: .destructive) {
+                    appState.clearAll()
+                }
+            } message: {
+                Text("Are you absolutely sure?")
+            }
+        }
+    }
+
+    private var shouldShowMoveAction: Bool {
+        !launchService.isRunningFromApplicationsFolder ||
+        launchService.statusDescription.lowercased().contains("not found")
+    }
+
+    private func relativeTime(from date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func sectionCard<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.secondary)
+            content()
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
     }
 }

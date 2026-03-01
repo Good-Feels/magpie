@@ -1,6 +1,6 @@
 name: Magpie
 options:
-  bundleIdPrefix: com.magpie
+  bundleIdPrefix: com.goodfeels
   deploymentTarget:
     macOS: "13.0"
   xcodeVersion: "16.0"
@@ -12,6 +12,9 @@ packages:
     path: ClipboardEngine
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle.git
+    from: "2.0.0"
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts.git
     from: "2.0.0"
 
 targets:
@@ -25,19 +28,22 @@ targets:
     dependencies:
       - package: ClipboardEngine
       - package: Sparkle
+      - package: KeyboardShortcuts
     entitlements:
       path: Magpie/Magpie.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.magpie.clipboard
+        PRODUCT_BUNDLE_IDENTIFIER: com.goodfeels.magpie
         PRODUCT_NAME: Magpie
         MACOSX_DEPLOYMENT_TARGET: "13.0"
-        INFOPLIST_FILE: Magpie.app/Contents/Info.plist
+        INFOPLIST_FILE: Magpie/Info.plist
         CODE_SIGN_ENTITLEMENTS: Magpie/Magpie.entitlements
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_HARDENED_RUNTIME: YES
+        DEVELOPMENT_TEAM: HTPHAYLD9X
+        CODE_SIGN_STYLE: Automatic
       configs:
         debug:
-          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_IDENTITY: "Apple Development"
         release:
           CODE_SIGN_IDENTITY: "Apple Development"

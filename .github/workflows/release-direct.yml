@@ -1,0 +1,100 @@
+name: Release Direct (DMG)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to release (for example v1.0.0)"
+        required: true
+      notarize:
+        description: "Notarize artifact"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check tag exists
+        run: git rev-parse "${{ github.event.inputs.tag }}"
+
+      - name: Import Developer ID certificate
+        env:
+          MACOS_CERT_P12_B64: ${{ secrets.MACOS_CERT_P12_B64 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [[ -z "${MACOS_CERT_P12_B64}" || -z "${MACOS_CERT_PASSWORD}" || -z "${KEYCHAIN_PASSWORD}" ]]; then
+            echo "Missing signing secrets."
+            exit 1
+          fi
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          echo "$MACOS_CERT_P12_B64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$MACOS_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Configure notarytool profile
+        if: ${{ github.event.inputs.notarize == 'true' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          if [[ -z "${APPLE_ID}" || -z "${APPLE_TEAM_ID}" || -z "${APPLE_APP_SPECIFIC_PASSWORD}" ]]; then
+            echo "Missing notarization secrets."
+            exit 1
+          fi
+          xcrun notarytool store-credentials "AC_NOTARY" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+
+      - name: Build release artifact
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          if [[ -z "${SIGN_IDENTITY}" ]]; then
+            echo "Missing MACOS_SIGN_IDENTITY secret."
+            exit 1
+          fi
+          if [[ "${{ github.event.inputs.notarize }}" == "true" ]]; then
+            ./scripts/build-release.sh \
+              --sign-identity "$SIGN_IDENTITY" \
+              --tag "${{ github.event.inputs.tag }}" \
+              --repo "${{ github.repository }}" \
+              --skip-appcast \
+              --notarize \
+              --keychain-profile "AC_NOTARY"
+          else
+            ./scripts/build-release.sh \
+              --sign-identity "$SIGN_IDENTITY" \
+              --tag "${{ github.event.inputs.tag }}" \
+              --repo "${{ github.repository }}" \
+              --skip-appcast
+          fi
+
+      - name: Upload release assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
+            --verify-tag \
+            --generate-notes \
+            dist/Magpie.dmg \
+            dist/Magpie.dmg.sha256
