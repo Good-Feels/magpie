@@ -24,5 +24,10 @@ let package = Package(
                 "Resources",
             ]
         ),
+        .testTarget(
+            name: "MagpieTests",
+            dependencies: ["Magpie"],
+            path: "Tests/MagpieTests"
+        ),
     ]
 )

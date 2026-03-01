@@ -148,15 +148,16 @@ struct GeneralSettingsView: View {
     }
 
     private var shouldShowMoveAction: Bool {
-        !launchService.isRunningFromApplicationsFolder
+        StartupUIRules.shouldShowMoveAction(
+            isRunningFromApplicationsFolder: launchService.isRunningFromApplicationsFolder
+        )
     }
 
     private var startupStatusText: String {
-        if launchService.isRunningFromApplicationsFolder &&
-            launchService.statusDescription.lowercased().contains("not found") {
-            return "Running from /Applications. If Launch at Login is unavailable, restart Magpie once."
-        }
-        return launchService.statusDescription
+        StartupUIRules.startupStatusText(
+            isRunningFromApplicationsFolder: launchService.isRunningFromApplicationsFolder,
+            statusDescription: launchService.statusDescription
+        )
     }
 
     private func relativeTime(from date: Date) -> String {

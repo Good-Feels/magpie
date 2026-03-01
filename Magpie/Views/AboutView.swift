@@ -3,9 +3,7 @@ import SwiftUI
 /// About tab in the preferences window.
 struct AboutView: View {
     private var versionText: String {
-        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
-        return "Version \(shortVersion) (\(build))"
+        VersionDisplayFormatter.versionText(infoDictionary: Bundle.main.infoDictionary)
     }
 
     var body: some View {

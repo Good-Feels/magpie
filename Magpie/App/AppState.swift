@@ -111,22 +111,21 @@ final class AppState: ObservableObject {
 
             let targetDB = targetDir.appendingPathComponent("clipboard.sqlite")
             let legacyDB = legacyDir.appendingPathComponent("clipboard.sqlite")
-
-            // If target exists, assume migration was already done.
-            if fm.fileExists(atPath: targetDB.path) {
-                return
-            }
-
-            // Nothing to migrate.
-            if !fm.fileExists(atPath: legacyDB.path) {
+            let shouldMigrate = LegacyDatabaseMigrationRules.shouldMigrate(
+                targetDir: targetDir,
+                legacyDir: legacyDir,
+                targetDatabaseExists: fm.fileExists(atPath: targetDB.path),
+                legacyDatabaseExists: fm.fileExists(atPath: legacyDB.path)
+            )
+            if !shouldMigrate {
                 return
             }
 
             try fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
 
-            for suffix in ["", "-wal", "-shm"] {
-                let from = legacyDir.appendingPathComponent("clipboard.sqlite\(suffix)")
-                let to = targetDir.appendingPathComponent("clipboard.sqlite\(suffix)")
+            for suffix in LegacyDatabaseMigrationRules.suffixes {
+                let from = legacyDir.appendingPathComponent("\(LegacyDatabaseMigrationRules.databaseBaseName)\(suffix)")
+                let to = targetDir.appendingPathComponent("\(LegacyDatabaseMigrationRules.databaseBaseName)\(suffix)")
                 if fm.fileExists(atPath: from.path) && !fm.fileExists(atPath: to.path) {
                     try fm.copyItem(at: from, to: to)
                 }
