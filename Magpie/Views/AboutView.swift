@@ -2,6 +2,12 @@ import SwiftUI
 
 /// About tab in the preferences window.
 struct AboutView: View {
+    private var versionText: String {
+        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "Version \(shortVersion) (\(build))"
+    }
+
     var body: some View {
         VStack(alignment: .center, spacing: 16) {
             VStack(spacing: 12) {
@@ -11,7 +17,7 @@ struct AboutView: View {
                 Text("Magpie")
                     .font(.title2.bold())
 
-                Text("Version 1.0.0")
+                Text(versionText)
                     .font(.caption)
                     .foregroundColor(.secondary)
 
