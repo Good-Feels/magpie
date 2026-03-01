@@ -1,4 +1,5 @@
 import XCTest
+import KeyboardShortcuts
 @testable import Magpie
 
 final class RegressionGuardsTests: XCTestCase {
@@ -48,6 +49,36 @@ final class RegressionGuardsTests: XCTestCase {
         XCTAssertEqual(
             VersionDisplayFormatter.versionText(infoDictionary: nil),
             "Version ? (?)"
+        )
+    }
+
+    func testShortcutHelperCopyIsNoLongerTemporary() {
+        XCTAssertFalse(
+            ShortcutSettingsCopy.helperText.localizedCaseInsensitiveContains("temporary fallback ui")
+        )
+    }
+
+    func testShortcutValidationRequiresCapture() {
+        XCTAssertEqual(
+            ShortcutSettingsRules.validationMessage(for: nil),
+            "Press a key combination."
+        )
+    }
+
+    func testShortcutValidationRequiresModifierKey() {
+        let shortcut = KeyboardShortcuts.Shortcut(.v, modifiers: [])
+
+        XCTAssertEqual(
+            ShortcutSettingsRules.validationMessage(for: shortcut),
+            "Include at least one modifier key (\u{2318}, \u{2325}, \u{2303}, or \u{21e7})."
+        )
+    }
+
+    func testShortcutValidationAcceptsCommandShortcut() {
+        let shortcut = KeyboardShortcuts.Shortcut(.v, modifiers: [.command, .shift])
+
+        XCTAssertNil(
+            ShortcutSettingsRules.validationMessage(for: shortcut)
         )
     }
 
