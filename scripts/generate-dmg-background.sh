@@ -38,19 +38,10 @@ img = Image.alpha_composite(img, glow)
 draw = ImageDraw.Draw(img)
 
 # Panels behind icons
-panel_color = (255, 255, 255, 230)
+panel_color = (255, 255, 255, 244)
 outline = (255, 255, 255, 255)
 draw.rounded_rectangle((88, 136, 258, 306), radius=26, fill=panel_color, outline=outline, width=1)
 draw.rounded_rectangle((422, 136, 592, 306), radius=26, fill=panel_color, outline=outline, width=1)
-
-# Subtle panel shadows
-shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-sdraw = ImageDraw.Draw(shadow)
-sdraw.rounded_rectangle((92, 140, 262, 310), radius=26, fill=(15, 20, 60, 75))
-sdraw.rounded_rectangle((426, 140, 596, 310), radius=26, fill=(15, 20, 60, 75))
-shadow = shadow.filter(ImageFilter.GaussianBlur(6))
-img = Image.alpha_composite(img, shadow)
-draw = ImageDraw.Draw(img)
 
 # Arrow path
 path = [(280, 220), (350, 220), (350, 205), (398, 235), (350, 265), (350, 250), (280, 250)]
@@ -90,13 +81,6 @@ subtitle = "Install once. Launch from Applications."
 sb = draw.textbbox((0, 0), subtitle, font=subtitle_font)
 sw = sb[2] - sb[0]
 draw.text(((w - sw) // 2, 92), subtitle, font=subtitle_font, fill=(245, 247, 255, 225))
-
-# Light strip below the icons so Finder's dark labels are readable.
-label_strip = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-ldraw = ImageDraw.Draw(label_strip)
-ldraw.rounded_rectangle((40, 318, 640, 388), radius=20, fill=(235, 241, 255, 44))
-label_strip = label_strip.filter(ImageFilter.GaussianBlur(5))
-img = Image.alpha_composite(img, label_strip)
 
 img.save(out_path, format="PNG")
 print(f"Generated DMG background: {out_path}")

@@ -269,7 +269,7 @@ tell application "Finder"
             set arrangement of viewOptions to not arranged
         end try
         try
-            set icon size of viewOptions to 104
+            set icon size of viewOptions to 108
         end try
         try
             set text size of viewOptions to 14
@@ -279,10 +279,10 @@ tell application "Finder"
         end try
     end if
     try
-        set position of item "Magpie.app" of dmgWindow to {186, 214}
+        set position of item "Magpie.app" of dmgWindow to {176, 210}
     end try
     try
-        set position of item "Applications" of dmgWindow to {522, 214}
+        set position of item "Applications" of dmgWindow to {512, 210}
     end try
     close dmgWindow
     delay 0.4
