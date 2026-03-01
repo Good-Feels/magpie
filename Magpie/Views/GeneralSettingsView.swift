@@ -64,7 +64,7 @@ struct GeneralSettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
-                Text(launchService.statusDescription)
+                Text(startupStatusText)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -148,8 +148,15 @@ struct GeneralSettingsView: View {
     }
 
     private var shouldShowMoveAction: Bool {
-        !launchService.isRunningFromApplicationsFolder ||
-        launchService.statusDescription.lowercased().contains("not found")
+        !launchService.isRunningFromApplicationsFolder
+    }
+
+    private var startupStatusText: String {
+        if launchService.isRunningFromApplicationsFolder &&
+            launchService.statusDescription.lowercased().contains("not found") {
+            return "Running from /Applications. If Launch at Login is unavailable, restart Magpie once."
+        }
+        return launchService.statusDescription
     }
 
     private func relativeTime(from date: Date) -> String {

@@ -47,6 +47,7 @@ final class AppState: ObservableObject {
         monitor = ClipboardMonitor(pollInterval: 0.5)
         exclusionManager = ExclusionListManager()
         accessChecker = ClipboardAccessChecker()
+        Self.migrateLegacyDatabaseIfNeeded()
 
         do {
             let dbManager = try DatabaseManager()
@@ -86,6 +87,54 @@ final class AppState: ObservableObject {
             if fm.fileExists(atPath: path) {
                 try fm.removeItem(atPath: path)
             }
+        }
+    }
+
+    /// One-time migration for users moving from a non-sandbox build
+    /// (`~/Library/Application Support/Magpie`) to sandboxed container storage.
+    /// If the target DB already exists, migration is skipped.
+    private static func migrateLegacyDatabaseIfNeeded() {
+        let fm = FileManager.default
+        do {
+            let targetDir = try fm
+                .url(for: .applicationSupportDirectory, in: .userDomainMask,
+                     appropriateFor: nil, create: true)
+                .appendingPathComponent("Magpie", isDirectory: true)
+
+            let legacyDir = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+                .appendingPathComponent("Library/Application Support/Magpie", isDirectory: true)
+
+            // Non-sandbox builds already use this location; nothing to migrate.
+            if targetDir.standardizedFileURL == legacyDir.standardizedFileURL {
+                return
+            }
+
+            let targetDB = targetDir.appendingPathComponent("clipboard.sqlite")
+            let legacyDB = legacyDir.appendingPathComponent("clipboard.sqlite")
+
+            // If target exists, assume migration was already done.
+            if fm.fileExists(atPath: targetDB.path) {
+                return
+            }
+
+            // Nothing to migrate.
+            if !fm.fileExists(atPath: legacyDB.path) {
+                return
+            }
+
+            try fm.createDirectory(at: targetDir, withIntermediateDirectories: true)
+
+            for suffix in ["", "-wal", "-shm"] {
+                let from = legacyDir.appendingPathComponent("clipboard.sqlite\(suffix)")
+                let to = targetDir.appendingPathComponent("clipboard.sqlite\(suffix)")
+                if fm.fileExists(atPath: from.path) && !fm.fileExists(atPath: to.path) {
+                    try fm.copyItem(at: from, to: to)
+                }
+            }
+
+            print("[Magpie] Migrated clipboard database from \(legacyDir.path) to \(targetDir.path)")
+        } catch {
+            print("[Magpie] Legacy database migration skipped: \(error)")
         }
     }
 
