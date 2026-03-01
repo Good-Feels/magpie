@@ -1,10 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
     <channel>
         <title>Magpie</title>
         <link>https://github.com/Good-Feels/magpie</link>
         <description>Magpie clipboard manager updates</description>
         <language>en</language>
         <!-- Release entries are added here by build-release.sh -->
+        <item>
+            <title>Magpie 1.0.0</title>
+            <pubDate>Sun, 01 Mar 2026 17:56:18 +0000</pubDate>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Good-Feels/magpie/releases/download/v1.0.0/Magpie.dmg" length="5283103" type="application/x-apple-diskimage" sparkle:edSignature="Heq6Okf+8Vx2bMBEbHTrEAPSQppsTB1Mcf2pVpH/5YWV4hbIXYKBWsr6oWiHULKqLr/Q/BQWqSxLrGvTISvMBg=="></enclosure>
+        </item>
     </channel>
-</rss>
+</rss><!-- sparkle-signatures:
+edSignature: YaDDyaEnHTOIbl2jp9D9M3TQzpreffr5BX77R1doMgqXjfjsd7POMkODEgZpjgz4t9xPFeZgbUrXiw+a4GwSAQ==
+length: 1330
+-->
