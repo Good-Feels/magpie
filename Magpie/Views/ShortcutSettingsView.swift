@@ -2,17 +2,38 @@ import SwiftUI
 import KeyboardShortcuts
 
 /// Shortcuts tab in the preferences window.
+///
+/// Uses simple controls instead of `KeyboardShortcuts.Recorder` because
+/// Recorder currently crashes in this app on macOS 15 when the tab opens.
 struct ShortcutSettingsView: View {
+    @State private var hasShortcut = KeyboardShortcuts.getShortcut(for: .toggleClipboardHistory) != nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionCard("Keyboard Shortcuts") {
+            sectionCard("Keyboard Shortcut") {
                 HStack {
                     Text("Toggle Clipboard History")
                     Spacer()
-                    KeyboardShortcuts.Recorder(for: .toggleClipboardHistory)
+                    Text(hasShortcut ? "Configured" : "Not set")
+                        .foregroundColor(.secondary)
                 }
 
-                Text("Press this shortcut from any app to show or hide Magpie.")
+                HStack(spacing: 10) {
+                    Button("Set Default (⌘⇧V)") {
+                        KeyboardShortcuts.setShortcut(
+                            .init(.v, modifiers: [.command, .shift]),
+                            for: .toggleClipboardHistory
+                        )
+                        refresh()
+                    }
+
+                    Button("Clear Shortcut") {
+                        KeyboardShortcuts.setShortcut(nil, for: .toggleClipboardHistory)
+                        refresh()
+                    }
+                }
+
+                Text("Temporary fallback UI while we fix the recorder crash on macOS 15.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -21,6 +42,13 @@ struct ShortcutSettingsView: View {
         }
         .padding(.top, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onAppear {
+            refresh()
+        }
+    }
+
+    private func refresh() {
+        hasShortcut = KeyboardShortcuts.getShortcut(for: .toggleClipboardHistory) != nil
     }
 
     private func sectionCard<Content: View>(
