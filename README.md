@@ -137,4 +137,6 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 <p align="center">
   Made with ❤️ by <a href="https://github.com/Good-Feels">Good Feels</a>
+  <br>
+  Built with OpenAI Codex
 </p>
