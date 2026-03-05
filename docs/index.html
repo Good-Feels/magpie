@@ -16,7 +16,7 @@
   <header class="hero wrap reveal">
     <nav class="topbar">
       <a class="brand" href="#top" aria-label="Magpie home">
-        <span class="brand-dot">M</span>
+        <img class="brand-icon" src="assets/app-icon.webp" alt="" width="32" height="32" />
         <span>Magpie</span>
       </a>
       <div class="top-links">
@@ -30,11 +30,8 @@
         <p class="eyebrow">macOS Clipboard Manager</p>
         <h1>Never lose a copy again.</h1>
         <div class="hero-badges">
-          <picture class="hero-icon-wrap">
-            <source srcset="assets/app-icon.webp" type="image/webp" />
-            <img class="hero-icon" src="assets/app-icon.png" alt="Magpie app icon" loading="eager" />
-          </picture>
           <span class="hero-chip">Native menu bar utility</span>
+          <span class="hero-chip">macOS only</span>
         </div>
         <p class="lead">Magpie quietly remembers everything you copy. Search instantly, pin favorites, and keep your clipboard history private on your Mac.</p>
         <div class="cta-row">
@@ -44,13 +41,11 @@
         <p class="meta">Swift + SwiftUI | SQLite | Sparkle Auto-Updates | macOS 13+</p>
       </div>
 
-      <div class="orb-stack" aria-hidden="true">
-        <div class="orb orb-a"></div>
-        <div class="orb orb-b"></div>
-        <svg class="magpie-mark" viewBox="0 0 340 220" role="img" aria-label="Magpie bird illustration">
-          <path d="M30 160c22-12 44-10 61-6 17 4 34 7 56 0 18-5 30-16 40-34 14-25 31-43 60-54 18-7 40-11 63-8-21 8-36 19-46 35 24 2 41 8 50 18-18 0-33 3-45 11 9 6 16 14 20 25-18-9-34-11-48-6-11 4-20 11-26 23-11 20-27 34-48 41-21 7-44 7-70 0-19-5-40-8-57 5 6-19 17-34 40-50z" />
-          <circle cx="245" cy="72" r="5" />
-        </svg>
+      <div class="hero-visual">
+        <picture class="hero-illustration">
+          <source srcset="assets/hero-image.webp" type="image/webp" />
+          <img src="assets/hero-image.png" alt="Magpie bird illustration" loading="eager" />
+        </picture>
         <div class="window-card">
           <div class="window-head">
             <span></span><span></span><span></span>
@@ -77,18 +72,22 @@
       </div>
       <div class="feature-grid">
         <article>
+          <span class="feature-icon">&#x26A1;</span>
           <h3>Instant Recall</h3>
           <p>Type to find anything you copied in seconds. No more temporary notes, no more panic.</p>
         </article>
         <article>
+          <span class="feature-icon">&#x1F512;</span>
           <h3>Private by Design</h3>
           <p>Everything is local. No cloud sync, no telemetry, no account setup.</p>
         </article>
         <article>
+          <span class="feature-icon">&#x1F4CB;</span>
           <h3>Rich Clipboard</h3>
           <p>Text, images, rich text, and file paths are captured with source-app context.</p>
         </article>
         <article>
+          <span class="feature-icon">&#x1F4CC;</span>
           <h3>Pin What Matters</h3>
           <p>Keep your most-used snippets at the top and out of the churn.</p>
         </article>
@@ -97,8 +96,8 @@
 
     <section class="wrap reveal">
       <div class="section-title">
-        <p class="eyebrow">Real app moments</p>
-        <h2>Drop screenshots, page updates itself.</h2>
+        <p class="eyebrow">See it in action</p>
+        <h2>Simple, fast, and out of the way.</h2>
       </div>
       <div class="shots">
         <figure class="shot" data-shot="history">
@@ -126,6 +125,10 @@
     </section>
 
     <section class="wrap reveal final-cta">
+      <picture class="cta-icon-wrap">
+        <source srcset="assets/app-icon.webp" type="image/webp" />
+        <img class="cta-icon" src="assets/app-icon.png" alt="Magpie app icon" loading="lazy" />
+      </picture>
       <h2>Ship cleaner copy/paste workflows today.</h2>
       <p>Open-source, native, lightweight. Exactly what a menu bar tool should be.</p>
       <div class="cta-row centered">
