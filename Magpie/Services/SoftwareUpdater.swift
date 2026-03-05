@@ -9,6 +9,8 @@ import Sparkle
 /// For MAS builds: Sparkle is linked but unused — updates come from the App Store.
 @MainActor
 final class SoftwareUpdater: ObservableObject {
+    private static let updateCheckInterval: TimeInterval = 60 * 60 * 8
+
     /// Whether Sparkle should check for updates automatically on launch.
     @Published var automaticallyChecksForUpdates: Bool {
         didSet {
@@ -30,6 +32,7 @@ final class SoftwareUpdater: ObservableObject {
             userDriverDelegate: nil
         )
         updater = updaterController.updater
+        updater.updateCheckInterval = Self.updateCheckInterval
         automaticallyChecksForUpdates = updater.automaticallyChecksForUpdates
 
         // Observe canCheckForUpdates via KVO so the UI can disable
