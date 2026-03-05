@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Magpie - Copy freely. Everything is saved.</title>
+  <meta name="description" content="Magpie is a fast, private, searchable clipboard manager for macOS." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="hero wrap reveal">
+    <nav class="topbar">
+      <a class="brand" href="#top" aria-label="Magpie home">
+        <span class="brand-dot">M</span>
+        <span>Magpie</span>
+      </a>
+      <div class="top-links">
+        <a href="https://github.com/Good-Feels/magpie" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/Good-Feels/magpie/releases/latest" target="_blank" rel="noreferrer" class="pill">Download</a>
+      </div>
+    </nav>
+
+    <div class="hero-grid" id="top">
+      <div>
+        <p class="eyebrow">macOS Clipboard Manager</p>
+        <h1>Never lose a copy again.</h1>
+        <p class="lead">Magpie quietly remembers everything you copy. Search instantly, pin favorites, and keep your clipboard history private on your Mac.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/Good-Feels/magpie/releases/latest" target="_blank" rel="noreferrer">Get Latest Release</a>
+          <a class="btn btn-ghost" href="https://github.com/Good-Feels/magpie" target="_blank" rel="noreferrer">View Source</a>
+        </div>
+        <p class="meta">Swift + SwiftUI | SQLite | Sparkle Auto-Updates | macOS 13+</p>
+      </div>
+
+      <div class="orb-stack" aria-hidden="true">
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+        <div class="window-card">
+          <div class="window-head">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="window-body">
+            <p class="search">Search clips...</p>
+            <ul>
+              <li><strong>ssh prod-server</strong><em>Terminal</em></li>
+              <li><strong>Invoice draft - Q2</strong><em>Notes</em></li>
+              <li><strong>api_key=***</strong><em>1Password (excluded)</em></li>
+              <li><strong>Design handoff link</strong><em>Figma</em></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="wrap reveal">
+      <div class="section-title">
+        <p class="eyebrow">Why it feels good</p>
+        <h2>Built for speed, made for trust.</h2>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <h3>Instant Recall</h3>
+          <p>Type to find anything you copied in seconds. No more temporary notes, no more panic.</p>
+        </article>
+        <article>
+          <h3>Private by Design</h3>
+          <p>Everything is local. No cloud sync, no telemetry, no account setup.</p>
+        </article>
+        <article>
+          <h3>Rich Clipboard</h3>
+          <p>Text, images, rich text, and file paths are captured with source-app context.</p>
+        </article>
+        <article>
+          <h3>Pin What Matters</h3>
+          <p>Keep your most-used snippets at the top and out of the churn.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="wrap reveal">
+      <div class="section-title">
+        <p class="eyebrow">Real app moments</p>
+        <h2>Drop screenshots, page updates itself.</h2>
+      </div>
+      <div class="shots">
+        <figure class="shot" data-shot="history">
+          <img src="assets/screenshots/history.png" alt="Magpie clipboard history view" loading="lazy" />
+          <figcaption>Clipboard History</figcaption>
+        </figure>
+        <figure class="shot" data-shot="search">
+          <img src="assets/screenshots/search.png" alt="Magpie live search" loading="lazy" />
+          <figcaption>Lightning Search</figcaption>
+        </figure>
+        <figure class="shot" data-shot="settings">
+          <img src="assets/screenshots/settings.png" alt="Magpie settings" loading="lazy" />
+          <figcaption>Focused Settings</figcaption>
+        </figure>
+      </div>
+      <p class="drop-note">Add PNG screenshots at <code>docs/assets/screenshots/history.png</code>, <code>search.png</code>, <code>settings.png</code>.</p>
+    </section>
+
+    <section class="wrap reveal final-cta">
+      <h2>Ship cleaner copy/paste workflows today.</h2>
+      <p>Open-source, native, lightweight. Exactly what a menu bar tool should be.</p>
+      <div class="cta-row centered">
+        <a class="btn btn-primary" href="https://github.com/Good-Feels/magpie/releases/latest" target="_blank" rel="noreferrer">Download Magpie</a>
+        <a class="btn btn-ghost" href="https://github.com/Good-Feels/magpie#build-from-source" target="_blank" rel="noreferrer">Build from Source</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <p>Magpie by <a href="https://github.com/Good-Feels" target="_blank" rel="noreferrer">Good Feels</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
