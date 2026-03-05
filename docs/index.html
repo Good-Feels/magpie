@@ -91,19 +91,28 @@
       </div>
       <div class="shots">
         <figure class="shot" data-shot="history">
-          <img src="assets/screenshots/history.png" alt="Magpie clipboard history view" loading="lazy" />
+          <picture>
+            <source srcset="assets/screenshots/history.webp" type="image/webp" />
+            <img src="assets/screenshots/history.png" alt="Magpie clipboard history view" loading="lazy" />
+          </picture>
           <figcaption>Clipboard History</figcaption>
         </figure>
         <figure class="shot" data-shot="search">
-          <img src="assets/screenshots/search.png" alt="Magpie live search" loading="lazy" />
+          <picture>
+            <source srcset="assets/screenshots/search.webp" type="image/webp" />
+            <img src="assets/screenshots/search.png" alt="Magpie live search" loading="lazy" />
+          </picture>
           <figcaption>Lightning Search</figcaption>
         </figure>
         <figure class="shot" data-shot="settings">
-          <img src="assets/screenshots/settings.png" alt="Magpie settings" loading="lazy" />
+          <picture>
+            <source srcset="assets/screenshots/settings.webp" type="image/webp" />
+            <img src="assets/screenshots/settings.png" alt="Magpie settings" loading="lazy" />
+          </picture>
           <figcaption>Focused Settings</figcaption>
         </figure>
       </div>
-      <p class="drop-note">Add PNG screenshots at <code>docs/assets/screenshots/history.png</code>, <code>search.png</code>, <code>settings.png</code>.</p>
+      <p class="drop-note">Add PNG screenshots at <code>docs/assets/screenshots/history.png</code>, <code>search.png</code>, <code>settings.png</code>, then run <code>./scripts/optimize-pages-images.sh</code>.</p>
     </section>
 
     <section class="wrap reveal final-cta">

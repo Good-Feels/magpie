@@ -307,8 +307,9 @@ section {
 .shot img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+  background: linear-gradient(145deg, #f6f9ff, #edf3fb);
 }
 
 .shot.is-fallback img {
@@ -323,7 +324,7 @@ section {
 .shot.is-fallback::before {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 5;
   background:
     radial-gradient(circle at 20% 20%, rgba(236, 159, 5, 0.35), transparent 42%),
     linear-gradient(160deg, #fefffe, #ebf3ff);
