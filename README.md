@@ -53,7 +53,7 @@ You have something important on your clipboard. Now you need to copy something e
 - **App exclusions** — Exclude password managers and other sensitive apps
 - **Lightweight** — Lives in your menu bar, uses SQLite, under 2MB
 - **Auto-updates** — Direct downloads update automatically via Sparkle
-- **Private** — Everything stays on your Mac. No cloud, no telemetry, no accounts
+- **Private** — Clipboard history stays on your Mac. Optional anonymous usage metrics, no accounts
 
 ## Install
 

@@ -16,6 +16,9 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts.git
     from: "2.0.0"
+  Mixpanel:
+    url: https://github.com/mixpanel/mixpanel-swift.git
+    from: "4.3.0"
 
 targets:
   Magpie:
@@ -29,6 +32,7 @@ targets:
       - package: ClipboardEngine
       - package: Sparkle
       - package: KeyboardShortcuts
+      - package: Mixpanel
     entitlements:
       path: Magpie/Magpie.entitlements
     settings:

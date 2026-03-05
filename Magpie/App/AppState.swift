@@ -35,11 +35,13 @@ final class AppState: ObservableObject {
 
     // MARK: - Dependencies
 
+    private let analytics = AnalyticsService.shared
     private(set) var databaseManager: DatabaseManager?
     private(set) var repository: ClipItemRepository?
     let monitor: ClipboardMonitor
     let exclusionManager: ExclusionListManager
     let accessChecker: ClipboardAccessChecker
+    private var hasTrackedCurrentSearch = false
 
     // MARK: - Init
 
@@ -311,8 +313,16 @@ final class AppState: ObservableObject {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if query.isEmpty {
             displayedClips = clips
+            hasTrackedCurrentSearch = false
         } else {
             displayedClips = (try? repository?.search(query: query)) ?? []
+            if !hasTrackedCurrentSearch {
+                analytics.trackSearchPerformed(
+                    queryLength: query.count,
+                    resultCount: displayedClips.count
+                )
+                hasTrackedCurrentSearch = true
+            }
         }
     }
 
@@ -355,6 +365,7 @@ final class AppState: ObservableObject {
 
         // Tell the monitor to ignore this change
         monitor.lastChangeCount = pasteboard.changeCount
+        analytics.trackClipRestored(contentType: item.contentType)
 
         // Show "Copied!" animation, then dismiss the popover
         copiedItemID = item.id

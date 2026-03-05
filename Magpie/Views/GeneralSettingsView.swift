@@ -6,6 +6,7 @@ struct GeneralSettingsView: View {
 
     @StateObject private var launchService = LaunchAtLoginService()
     @StateObject private var softwareUpdater = SoftwareUpdater()
+    @ObservedObject private var analyticsService = AnalyticsService.shared
 
     @AppStorage("maxHistorySize") private var maxHistorySize: Int = 200
     @AppStorage("showSourceApp") private var showSourceApp: Bool = true
@@ -25,6 +26,7 @@ struct GeneralSettingsView: View {
                 updatesSection
                 historySection
                 displaySection
+                analyticsSection
                 dataSection
             }
             .padding(16)
@@ -144,6 +146,22 @@ struct GeneralSettingsView: View {
             } message: {
                 Text("Are you absolutely sure?")
             }
+        }
+    }
+
+    private var analyticsSection: some View {
+        sectionCard("Analytics") {
+            Toggle(
+                "Share anonymous usage metrics",
+                isOn: Binding(
+                    get: { analyticsService.isTrackingEnabled },
+                    set: { analyticsService.setTrackingEnabled($0) }
+                )
+            )
+
+            Text("Tracks aggregate events like app opens, searches, and restored clips. Clipboard contents, file paths, and copied text are never sent.")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
 

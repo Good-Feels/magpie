@@ -127,4 +127,18 @@ final class RegressionGuardsTests: XCTestCase {
             )
         )
     }
+
+    func testAnalyticsQueryLengthBuckets() {
+        XCTAssertEqual(AnalyticsBuckets.queryLengthBucket(for: 0), "0")
+        XCTAssertEqual(AnalyticsBuckets.queryLengthBucket(for: 3), "1-3")
+        XCTAssertEqual(AnalyticsBuckets.queryLengthBucket(for: 8), "4-8")
+        XCTAssertEqual(AnalyticsBuckets.queryLengthBucket(for: 9), "9+")
+    }
+
+    func testAnalyticsResultCountBuckets() {
+        XCTAssertEqual(AnalyticsBuckets.resultCountBucket(for: 0), "0")
+        XCTAssertEqual(AnalyticsBuckets.resultCountBucket(for: 5), "1-5")
+        XCTAssertEqual(AnalyticsBuckets.resultCountBucket(for: 20), "6-20")
+        XCTAssertEqual(AnalyticsBuckets.resultCountBucket(for: 21), "21+")
+    }
 }

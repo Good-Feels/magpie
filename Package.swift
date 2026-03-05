@@ -8,6 +8,7 @@ let package = Package(
         .package(path: "ClipboardEngine"),
         .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.0.0"),
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", from: "2.0.0"),
+        .package(url: "https://github.com/mixpanel/mixpanel-swift.git", from: "4.3.0"),
     ],
     targets: [
         .executableTarget(
@@ -16,6 +17,7 @@ let package = Package(
                 "ClipboardEngine",
                 .product(name: "Sparkle", package: "Sparkle"),
                 "KeyboardShortcuts",
+                .product(name: "Mixpanel", package: "mixpanel-swift"),
             ],
             path: "Magpie",
             exclude: [

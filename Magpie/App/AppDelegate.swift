@@ -12,6 +12,7 @@ import KeyboardShortcuts
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
+    private let analytics = AnalyticsService.shared
 
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
@@ -26,6 +27,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let bundleID = Bundle.main.bundleIdentifier ?? "unknown"
         let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         print("[Magpie] Launch: bundleID=\(bundleID) hasCompletedOnboarding=\(hasCompletedOnboarding)")
+        analytics.configure()
+        analytics.trackAppOpened(hasCompletedOnboarding: hasCompletedOnboarding)
 
         setupStatusItem()
         setupPopover()
@@ -56,6 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         appState.stopMonitoring()
+        analytics.flush()
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
         }
@@ -104,6 +108,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Refresh clipboard access state each time the popover opens
         appState.accessChecker.checkAccess()
         appState.loadClips()
+        analytics.trackPopoverOpened(itemCount: appState.displayedClips.count)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
 
         // Ensure the popover window becomes key so the search bar gets focus
