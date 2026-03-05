@@ -29,6 +29,13 @@
       <div>
         <p class="eyebrow">macOS Clipboard Manager</p>
         <h1>Never lose a copy again.</h1>
+        <div class="hero-badges">
+          <picture class="hero-icon-wrap">
+            <source srcset="assets/app-icon.webp" type="image/webp" />
+            <img class="hero-icon" src="assets/app-icon.png" alt="Magpie app icon" loading="eager" />
+          </picture>
+          <span class="hero-chip">Native menu bar utility</span>
+        </div>
         <p class="lead">Magpie quietly remembers everything you copy. Search instantly, pin favorites, and keep your clipboard history private on your Mac.</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="https://github.com/Good-Feels/magpie/releases/latest" target="_blank" rel="noreferrer">Get Latest Release</a>
@@ -40,6 +47,10 @@
       <div class="orb-stack" aria-hidden="true">
         <div class="orb orb-a"></div>
         <div class="orb orb-b"></div>
+        <svg class="magpie-mark" viewBox="0 0 340 220" role="img" aria-label="Magpie bird illustration">
+          <path d="M30 160c22-12 44-10 61-6 17 4 34 7 56 0 18-5 30-16 40-34 14-25 31-43 60-54 18-7 40-11 63-8-21 8-36 19-46 35 24 2 41 8 50 18-18 0-33 3-45 11 9 6 16 14 20 25-18-9-34-11-48-6-11 4-20 11-26 23-11 20-27 34-48 41-21 7-44 7-70 0-19-5-40-8-57 5 6-19 17-34 40-50z" />
+          <circle cx="245" cy="72" r="5" />
+        </svg>
         <div class="window-card">
           <div class="window-head">
             <span></span><span></span><span></span>
@@ -112,7 +123,6 @@
           <figcaption>Focused Settings</figcaption>
         </figure>
       </div>
-      <p class="drop-note">Add PNG screenshots at <code>docs/assets/screenshots/history.png</code>, <code>search.png</code>, <code>settings.png</code>, then run <code>./scripts/optimize-pages-images.sh</code>.</p>
     </section>
 
     <section class="wrap reveal final-cta">
@@ -126,7 +136,7 @@
   </main>
 
   <footer class="wrap footer">
-    <p>Magpie by <a href="https://github.com/Good-Feels" target="_blank" rel="noreferrer">Good Feels</a></p>
+    <p>Magpie by <a href="https://getgoodfeels.com/" target="_blank" rel="noreferrer">Good Feels</a></p>
   </footer>
 
   <script src="script.js"></script>

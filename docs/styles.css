@@ -1,11 +1,11 @@
 :root {
-  --ink: #0f1722;
+  --ink: #161c34;
   --ink-soft: #314055;
   --paper: #f7f9fc;
   --line: #d4dbe7;
-  --brand: #f15b2a;
-  --brand-2: #ec9f05;
-  --brand-3: #0091ad;
+  --brand: #3c4a83;
+  --brand-2: #5f65a1;
+  --brand-3: #a7a8bc;
   --card: rgba(255, 255, 255, 0.72);
   --shadow: 0 14px 50px rgba(15, 23, 34, 0.14);
 }
@@ -17,9 +17,9 @@ body {
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at 20% 8%, rgba(241, 91, 42, 0.19), transparent 44%),
-    radial-gradient(circle at 84% 0%, rgba(0, 145, 173, 0.22), transparent 38%),
-    linear-gradient(150deg, #fdfefe, #eef4fb 60%, #f9f3ea);
+    radial-gradient(circle at 20% 8%, rgba(60, 74, 131, 0.22), transparent 44%),
+    radial-gradient(circle at 84% 0%, rgba(167, 168, 188, 0.3), transparent 38%),
+    linear-gradient(150deg, #fdfefe, #eef3fb 60%, #eceff8);
   min-height: 100vh;
 }
 
@@ -123,6 +123,35 @@ h2 {
   color: var(--ink-soft);
 }
 
+.hero-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 0.7rem;
+}
+
+.hero-icon-wrap {
+  display: inline-flex;
+}
+
+.hero-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  box-shadow: 0 12px 26px rgba(60, 74, 131, 0.28);
+}
+
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  color: #46598c;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #d8deee;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+}
+
 .meta {
   color: #586980;
   font-size: 0.91rem;
@@ -145,8 +174,8 @@ h2 {
 
 .btn-primary {
   color: #fff;
-  background: linear-gradient(135deg, #f05a28, #ec9f05 72%);
-  box-shadow: 0 10px 30px rgba(240, 90, 40, 0.35);
+  background: linear-gradient(135deg, #3c4a83, #5f65a1 72%);
+  box-shadow: 0 10px 30px rgba(60, 74, 131, 0.35);
 }
 
 .btn-ghost {
@@ -171,7 +200,7 @@ h2 {
   right: 20px;
   width: 230px;
   height: 230px;
-  background: radial-gradient(circle at 30% 30%, #ffb19a, #f25c3f);
+  background: radial-gradient(circle at 30% 30%, #a7b2e8, #5f65a1);
 }
 
 .orb-b {
@@ -179,7 +208,23 @@ h2 {
   left: 0;
   width: 170px;
   height: 170px;
-  background: radial-gradient(circle at 50% 50%, #6cd4ea, #0091ad);
+  background: radial-gradient(circle at 50% 50%, #d0d3e8, #6f78b9);
+}
+
+.magpie-mark {
+  position: absolute;
+  top: 2px;
+  left: -4px;
+  width: 200px;
+  opacity: 0.35;
+}
+
+.magpie-mark path {
+  fill: #2f3967;
+}
+
+.magpie-mark circle {
+  fill: #e9ecfa;
 }
 
 .window-card {
@@ -326,7 +371,7 @@ section {
   width: 100%;
   aspect-ratio: 4 / 5;
   background:
-    radial-gradient(circle at 20% 20%, rgba(236, 159, 5, 0.35), transparent 42%),
+    radial-gradient(circle at 20% 20%, rgba(95, 101, 161, 0.35), transparent 42%),
     linear-gradient(160deg, #fefffe, #ebf3ff);
   border-bottom: 1px solid #e0e8f6;
 }
@@ -394,6 +439,12 @@ section {
   .window-card {
     left: 0;
     width: 100%;
+  }
+
+  .magpie-mark {
+    width: 150px;
+    top: 8px;
+    left: 8px;
   }
 
   .orb-stack {
