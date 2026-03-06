@@ -204,8 +204,38 @@ echo "==> Stripping binary..."
 strip -x "$APP_BUNDLE/Contents/MacOS/Magpie" 2>/dev/null || true
 
 if [[ -n "$SIGN_IDENTITY" ]]; then
+    EMBEDDED_SPARKLE_FW="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+
+    if [[ -d "$EMBEDDED_SPARKLE_FW" ]]; then
+        EMBEDDED_SPARKLE_CURRENT="$(cd "$EMBEDDED_SPARKLE_FW/Versions/Current" && pwd)"
+
+        echo "==> Signing embedded Sparkle helpers..."
+        if [[ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc" ]]; then
+            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+                "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc"
+        fi
+
+        if [[ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc" ]]; then
+            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+                --preserve-metadata=entitlements \
+                "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc"
+        fi
+
+        if [[ -f "$EMBEDDED_SPARKLE_CURRENT/Autoupdate" ]]; then
+            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+                "$EMBEDDED_SPARKLE_CURRENT/Autoupdate"
+        fi
+
+        if [[ -d "$EMBEDDED_SPARKLE_CURRENT/Updater.app" ]]; then
+            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+                "$EMBEDDED_SPARKLE_CURRENT/Updater.app"
+        fi
+
+        codesign --force --options runtime --sign "$SIGN_IDENTITY" "$EMBEDDED_SPARKLE_FW"
+    fi
+
     echo "==> Signing app with: $SIGN_IDENTITY"
-    codesign --force --deep --options runtime \
+    codesign --force --options runtime \
         --sign "$SIGN_IDENTITY" \
         --entitlements "$RESOLVED_ENTITLEMENTS" \
         "$APP_BUNDLE"

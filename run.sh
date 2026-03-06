@@ -37,7 +37,35 @@ fi
 
 # Code-sign so macOS recognises the app for privacy prompts (clipboard, etc.)
 echo "Signing..."
-codesign --force --deep --sign "Apple Development" "$APP_BUNDLE"
+EMBEDDED_SPARKLE_FW="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+if [ -d "$EMBEDDED_SPARKLE_FW" ]; then
+    EMBEDDED_SPARKLE_CURRENT="$(cd "$EMBEDDED_SPARKLE_FW/Versions/Current" && pwd)"
+
+    if [ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc" ]; then
+        codesign --force --sign "Apple Development" \
+            "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc"
+    fi
+
+    if [ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc" ]; then
+        codesign --force --sign "Apple Development" \
+            --preserve-metadata=entitlements \
+            "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc"
+    fi
+
+    if [ -f "$EMBEDDED_SPARKLE_CURRENT/Autoupdate" ]; then
+        codesign --force --sign "Apple Development" \
+            "$EMBEDDED_SPARKLE_CURRENT/Autoupdate"
+    fi
+
+    if [ -d "$EMBEDDED_SPARKLE_CURRENT/Updater.app" ]; then
+        codesign --force --sign "Apple Development" \
+            "$EMBEDDED_SPARKLE_CURRENT/Updater.app"
+    fi
+
+    codesign --force --sign "Apple Development" "$EMBEDDED_SPARKLE_FW"
+fi
+
+codesign --force --sign "Apple Development" "$APP_BUNDLE"
 
 # Kill any existing instance
 killall Magpie 2>/dev/null && sleep 0.5 || true
