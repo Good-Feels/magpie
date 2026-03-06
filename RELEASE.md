@@ -2,6 +2,22 @@
 
 This is the canonical process to ship a direct-distribution release (DMG + Sparkle appcast) from this repo.
 
+## Important Sparkle Signing Note
+
+For sandboxed Sparkle updates, do not sign `Magpie.app` with `codesign --deep`.
+
+The working pattern is:
+- re-sign Sparkle's embedded helpers first
+- sign `Sparkle.framework`
+- sign the top-level `Magpie.app` with entitlements, but without `--deep`
+
+If you accidentally sign the app with `--deep`, Sparkle may still download and extract the update, but fail at installer launch with errors like:
+- `Failed to submit installer job`
+- `Failed to gain authorization required to update target`
+- `If your application is sandboxed please follow steps at: https://sparkle-project.org/documentation/sandboxing/`
+
+The release/build scripts in this repo already implement the correct signing order. Preserve that logic.
+
 ## One-Time Setup (Per Machine)
 
 1. Confirm Apple Developer signing identity exists:
@@ -88,6 +104,7 @@ Hard gates before proceeding:
 1. Script exits successfully.
 2. Notarization completes (no errors in output).
 3. `appcast.xml` contains a new enclosure URL for your tag and includes `sparkle:edSignature`.
+4. Auto-update smoke test from the previous installed version succeeds before trusting the release as an updater base.
 
 ### 3. Commit appcast update
 
@@ -122,6 +139,9 @@ gh release create "$TAG" \
 3. Trigger `Check for Updates` from settings:
    - expected: no signature/feed error.
    - expected: reports up-to-date on fresh install of that tag.
+4. Test one real Sparkle hop from the prior installed version to the new version:
+   - expected: download, extract, authorize, install, and relaunch all succeed.
+   - if it fails after extraction or installer launch, inspect macOS logs for `Magpie`, `Installer`, and `org.sparkle-project.Sparkle`.
 
 ## Fast Rollback
 
