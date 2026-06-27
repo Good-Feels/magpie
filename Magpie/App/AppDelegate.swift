@@ -30,6 +30,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         analytics.configure()
         analytics.trackAppOpened(hasCompletedOnboarding: hasCompletedOnboarding)
 
+        // Re-register launch-at-login if macOS dropped it (BTM resets,
+        // updates replacing the bundle).
+        LaunchAtLoginService().healRegistrationIfNeeded()
+
         setupStatusItem()
         setupPopover()
         setupEventMonitor()
@@ -54,6 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             showOnboarding()
         } else {
             print("[Magpie] Launch: onboarding skipped (already completed)")
+            warnIfStatusItemHidden()
         }
     }
 
@@ -78,6 +83,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(togglePopover)
             button.target = self
         }
+    }
+
+    // MARK: - Menu Bar Visibility
+
+    /// When the menu bar is full (which happens much sooner on MacBooks
+    /// with a notch), macOS silently hides status items. The app is then
+    /// running with no visible UI, which reads as "the app didn't open".
+    /// Detect that and explain it to the user once.
+    private func warnIfStatusItemHidden() {
+        // Give the status item a moment to be laid out after launch.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self, !self.isStatusItemVisible() else { return }
+            print("[Magpie] Status item is hidden — menu bar is full (or item is under the notch)")
+            analytics.trackStatusItemHidden()
+
+            let warnedKey = "hasWarnedHiddenStatusItem"
+            guard !UserDefaults.standard.bool(forKey: warnedKey) else { return }
+            UserDefaults.standard.set(true, forKey: warnedKey)
+            self.showHiddenStatusItemAlert()
+        }
+    }
+
+    private func isStatusItemVisible() -> Bool {
+        guard let window = statusItem.button?.window else { return false }
+        guard window.occlusionState.contains(.visible) else { return false }
+        // Hidden status items are pushed outside every screen's frame.
+        return NSScreen.screens.contains { $0.frame.intersects(window.frame) }
+    }
+
+    private func showHiddenStatusItemAlert() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Magpie is running, but its menu bar icon is hidden"
+        alert.informativeText = """
+            Your menu bar is full, so macOS is hiding Magpie's icon. On MacBooks with a notch this happens with fewer icons.
+
+            Magpie is still saving your clipboard — press ⌘⇧V to open your history anytime. To make the icon visible, quit another menu bar app or use a menu bar manager.
+            """
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     // MARK: - Popover

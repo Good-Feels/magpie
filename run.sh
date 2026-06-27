@@ -21,6 +21,12 @@ mkdir -p "$APP_BUNDLE/Contents/Frameworks"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
 cp -f .build/debug/Magpie "$APP_BUNDLE/Contents/MacOS/Magpie"
 cp -f "$INFO_PLIST" "$APP_BUNDLE/Contents/Info.plist"
+
+# Give the dev build its own bundle ID. A second copy of
+# com.goodfeels.magpie on disk makes LaunchServices/Background Task
+# Management resolve the login item to the wrong (stale) bundle, which
+# breaks launch-at-login for the installed app.
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.goodfeels.magpie.dev" "$APP_BUNDLE/Contents/Info.plist"
 cp -f "$ICON_ICNS" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 if [ -f "$ASSETS_CAR" ]; then
     cp -f "$ASSETS_CAR" "$APP_BUNDLE/Contents/Resources/Assets.car"

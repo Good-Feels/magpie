@@ -91,6 +91,10 @@ final class AnalyticsService: ObservableObject {
         )
     }
 
+    func trackStatusItemHidden() {
+        track(event: "status_item_hidden")
+    }
+
     func trackClipRestored(contentType: String) {
         track(
             event: "clip_restored",

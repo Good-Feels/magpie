@@ -1,5 +1,30 @@
 import Foundation
 import KeyboardShortcuts
+import ServiceManagement
+
+enum LoginItemRepairRules {
+    /// Repair only when the user opted in and macOS lost the registration.
+    /// `.enabled` needs nothing; `.requiresApproval` means re-registering
+    /// is pointless — the user must approve it in System Settings.
+    static func shouldAttemptRepair(
+        desiredEnabled: Bool,
+        status: SMAppService.Status
+    ) -> Bool {
+        desiredEnabled && (status == .notRegistered || status == .notFound)
+    }
+
+    /// Users who enabled launch-at-login before the choice was persisted
+    /// have no stored preference. If the login item is currently live,
+    /// backfill the stored value to `true` so a future drop can be
+    /// repaired. Returns the value to persist, or `nil` to write nothing.
+    static func backfillDesiredValue(
+        storedDesired: Bool?,
+        statusIsEnabled: Bool
+    ) -> Bool? {
+        guard storedDesired == nil, statusIsEnabled else { return nil }
+        return true
+    }
+}
 
 enum StartupUIRules {
     static func shouldShowMoveAction(isRunningFromApplicationsFolder: Bool) -> Bool {

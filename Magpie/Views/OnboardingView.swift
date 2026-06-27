@@ -317,6 +317,11 @@ struct OnboardingView: View {
         case .howItWorks:
             if launchAtLogin {
                 loginService.setLoginItem(enabled: true)
+                // Registration can land in "requires approval" — without
+                // this the user thinks it's on but it never launches.
+                if loginService.requiresApproval {
+                    loginService.openLoginItemsSettings()
+                }
             }
             onComplete()
         }

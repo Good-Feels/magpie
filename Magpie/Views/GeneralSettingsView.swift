@@ -38,6 +38,19 @@ struct GeneralSettingsView: View {
         sectionCard("Startup") {
             Toggle("Launch at Login", isOn: $launchService.isEnabled)
 
+            if launchService.requiresApproval {
+                HStack(spacing: 10) {
+                    Text("macOS needs your approval before Magpie can launch at login.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+
+                    Button("Open Login Items Settings") {
+                        launchService.openLoginItemsSettings()
+                    }
+                    .buttonStyle(.link)
+                }
+            }
+
             if shouldShowMoveAction {
                 HStack(spacing: 10) {
                     Button("Move Magpie to /Applications") {

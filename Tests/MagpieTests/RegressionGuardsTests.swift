@@ -1,8 +1,55 @@
 import XCTest
 import KeyboardShortcuts
+import ServiceManagement
 @testable import Magpie
 
 final class RegressionGuardsTests: XCTestCase {
+    func testLoginItemRepairRunsWhenDesiredAndRegistrationDropped() {
+        XCTAssertTrue(
+            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .notRegistered)
+        )
+        XCTAssertTrue(
+            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .notFound)
+        )
+    }
+
+    func testLoginItemRepairSkippedWhenAlreadyEnabledOrAwaitingApproval() {
+        XCTAssertFalse(
+            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .enabled)
+        )
+        XCTAssertFalse(
+            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .requiresApproval)
+        )
+    }
+
+    func testLoginItemRepairSkippedWhenUserNeverOptedIn() {
+        XCTAssertFalse(
+            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: false, status: .notRegistered)
+        )
+    }
+
+    func testBackfillCapturesEnabledItemWithNoStoredPreference() {
+        XCTAssertEqual(
+            LoginItemRepairRules.backfillDesiredValue(storedDesired: nil, statusIsEnabled: true),
+            true
+        )
+    }
+
+    func testBackfillSkippedWhenPreferenceAlreadyStored() {
+        XCTAssertNil(
+            LoginItemRepairRules.backfillDesiredValue(storedDesired: false, statusIsEnabled: true)
+        )
+        XCTAssertNil(
+            LoginItemRepairRules.backfillDesiredValue(storedDesired: true, statusIsEnabled: true)
+        )
+    }
+
+    func testBackfillSkippedWhenItemNotEnabled() {
+        XCTAssertNil(
+            LoginItemRepairRules.backfillDesiredValue(storedDesired: nil, statusIsEnabled: false)
+        )
+    }
+
     func testMoveActionHiddenWhenRunningFromApplications() {
         XCTAssertFalse(
             StartupUIRules.shouldShowMoveAction(isRunningFromApplicationsFolder: true)
@@ -140,5 +187,105 @@ final class RegressionGuardsTests: XCTestCase {
         XCTAssertEqual(AnalyticsBuckets.resultCountBucket(for: 5), "1-5")
         XCTAssertEqual(AnalyticsBuckets.resultCountBucket(for: 20), "6-20")
         XCTAssertEqual(AnalyticsBuckets.resultCountBucket(for: 21), "21+")
+    }
+
+    // MARK: - Launch-at-login orchestration
+
+    private func makeDefaults(_ name: String = #function) -> UserDefaults {
+        let suite = "MagpieTests.\(name)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return defaults
+    }
+
+    @MainActor
+    func testHealRepairsDroppedRegistrationWhenUserOptedIn() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLoginService.desiredEnabledKey)
+
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+        let repaired = service.healRegistrationIfNeeded()
+
+        XCTAssertTrue(repaired)
+        XCTAssertEqual(control.registerCallCount, 1)
+    }
+
+    @MainActor
+    func testHealDoesNothingWhenUserNeverOptedIn() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        let defaults = makeDefaults()
+
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+        let repaired = service.healRegistrationIfNeeded()
+
+        XCTAssertFalse(repaired)
+        XCTAssertEqual(control.registerCallCount, 0)
+    }
+
+    @MainActor
+    func testHealBackfillsPreferenceForLegacyEnabledUser() {
+        // Enabled item, but the user is on a build that never persisted the
+        // choice. Heal should capture intent without re-registering.
+        let control = FakeLoginItemControl(status: .enabled)
+        let defaults = makeDefaults()
+
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+        let repaired = service.healRegistrationIfNeeded()
+
+        XCTAssertFalse(repaired)
+        XCTAssertEqual(control.registerCallCount, 0)
+        XCTAssertTrue(defaults.bool(forKey: LaunchAtLoginService.desiredEnabledKey))
+    }
+
+    @MainActor
+    func testSetLoginItemPersistsChoiceOnSuccess() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        let defaults = makeDefaults()
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+
+        service.setLoginItem(enabled: true)
+
+        XCTAssertEqual(control.registerCallCount, 1)
+        XCTAssertTrue(defaults.bool(forKey: LaunchAtLoginService.desiredEnabledKey))
+    }
+
+    @MainActor
+    func testSetLoginItemRevertsAndDoesNotPersistOnFailure() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        control.registerError = TestError.boom
+        let defaults = makeDefaults()
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+
+        service.setLoginItem(enabled: true)
+
+        XCTAssertFalse(service.isEnabled)
+        XCTAssertNil(defaults.object(forKey: LaunchAtLoginService.desiredEnabledKey))
+    }
+}
+
+private enum TestError: Error { case boom }
+
+private final class FakeLoginItemControl: LoginItemControlling {
+    var status: SMAppService.Status
+    var registerCallCount = 0
+    var unregisterCallCount = 0
+    var registerError: Error?
+    var unregisterError: Error?
+
+    init(status: SMAppService.Status) {
+        self.status = status
+    }
+
+    func register() throws {
+        registerCallCount += 1
+        if let registerError { throw registerError }
+        status = .enabled
+    }
+
+    func unregister() throws {
+        unregisterCallCount += 1
+        if let unregisterError { throw unregisterError }
+        status = .notRegistered
     }
 }
