@@ -10,7 +10,7 @@ import KeyboardShortcuts
 ///   • Starting/stopping clipboard monitoring
 ///   • Showing first-launch onboarding
 @MainActor
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     let appState = AppState()
     private let analytics = AnalyticsService.shared
 
@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover!
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
+    private var fallbackAnchorWindow: NSWindow?
     private var eventMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
 
@@ -29,10 +30,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("[Magpie] Launch: bundleID=\(bundleID) hasCompletedOnboarding=\(hasCompletedOnboarding)")
         analytics.configure()
         analytics.trackAppOpened(hasCompletedOnboarding: hasCompletedOnboarding)
-
-        // Re-register launch-at-login if macOS dropped it (BTM resets,
-        // updates replacing the bundle).
-        LaunchAtLoginService().healRegistrationIfNeeded()
 
         setupStatusItem()
         setupPopover()
@@ -59,6 +56,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             print("[Magpie] Launch: onboarding skipped (already completed)")
             warnIfStatusItemHidden()
+        }
+
+        // Re-register launch-at-login if macOS dropped it (BTM resets,
+        // updates replacing the bundle). Deferred so the synchronous
+        // SMAppService XPC calls don't delay menu bar setup at login.
+        Task { @MainActor in
+            LaunchAtLoginService().healRegistrationIfNeeded()
         }
     }
 
@@ -91,10 +95,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// with a notch), macOS silently hides status items. The app is then
     /// running with no visible UI, which reads as "the app didn't open".
     /// Detect that and explain it to the user once.
+    ///
+    /// Warns only on the confident signal (item pushed off-screen) —
+    /// occlusion alone false-positives at login with the screen locked,
+    /// in fullscreen apps, and with menu bar auto-hide, which would burn
+    /// the one-shot alert on a wrong warning.
     private func warnIfStatusItemHidden() {
         // Give the status item a moment to be laid out after launch.
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            guard let self, !self.isStatusItemVisible() else { return }
+            guard let self, self.isStatusItemEvicted() else { return }
             print("[Magpie] Status item is hidden — menu bar is full (or item is under the notch)")
             analytics.trackStatusItemHidden()
 
@@ -105,11 +114,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// True when macOS has pushed the status item outside every screen —
+    /// the definitive "menu bar is full" signal.
+    private func isStatusItemEvicted() -> Bool {
+        guard let window = statusItem.button?.window else { return false }
+        return StatusItemVisibilityRules.isConfidentlyEvicted(
+            buttonWindowFrame: window.frame,
+            screenFrames: NSScreen.screens.map(\.frame)
+        )
+    }
+
     private func isStatusItemVisible() -> Bool {
         guard let window = statusItem.button?.window else { return false }
         guard window.occlusionState.contains(.visible) else { return false }
-        // Hidden status items are pushed outside every screen's frame.
-        return NSScreen.screens.contains { $0.frame.intersects(window.frame) }
+        return !isStatusItemEvicted()
     }
 
     private func showHiddenStatusItemAlert() {
@@ -117,11 +135,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = "Magpie is running, but its menu bar icon is hidden"
-        alert.informativeText = """
-            Your menu bar is full, so macOS is hiding Magpie's icon. On MacBooks with a notch this happens with fewer icons.
-
-            Magpie is still saving your clipboard — press ⌘⇧V to open your history anytime. To make the icon visible, quit another menu bar app or use a menu bar manager.
-            """
+        let shortcut = KeyboardShortcuts.getShortcut(for: .toggleClipboardHistory)
+        alert.informativeText = HiddenStatusItemCopy.alertBody(
+            shortcutText: shortcut.map(String.init(describing:))
+        )
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
@@ -139,6 +156,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(appState.exclusionManager)
 
         popover.contentViewController = NSHostingController(rootView: contentView)
+        popover.delegate = self
+    }
+
+    /// Covers every close path — performClose and transient outside-click
+    /// dismissal — so the fallback anchor window never outlives the popover.
+    func popoverDidClose(_ notification: Notification) {
+        fallbackAnchorWindow?.orderOut(nil)
     }
 
     @objc private func togglePopover() {
@@ -150,15 +174,66 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showPopover() {
-        guard let button = statusItem.button else { return }
         // Refresh clipboard access state each time the popover opens
         appState.accessChecker.checkAccess()
         appState.loadClips()
         analytics.trackPopoverOpened(itemCount: appState.displayedClips.count)
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+
+        // When the menu bar is full, macOS pushes the status item's window
+        // off-screen. Anchoring the popover to it would open the popover
+        // off-screen too — invisible, but isShown == true, so the hotkey
+        // appears dead. Fall back to an on-screen anchor instead.
+        if let button = statusItem.button, isStatusItemVisible() {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        } else {
+            print("[Magpie] Status item hidden — showing popover from fallback anchor")
+            showPopoverFromFallbackAnchor()
+        }
 
         // Ensure the popover window becomes key so the search bar gets focus
         popover.contentViewController?.view.window?.makeKey()
+    }
+
+    /// Anchors the popover to an invisible 1-point window at the top center
+    /// of the active screen, mimicking the status item position.
+    private func showPopoverFromFallbackAnchor() {
+        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) }
+            ?? NSScreen.main
+        guard let screen else { return }
+
+        let anchorRect = PopoverAnchorRules.fallbackAnchorRect(
+            visibleFrame: screen.visibleFrame
+        )
+
+        let window: NSWindow
+        if let existing = fallbackAnchorWindow {
+            window = existing
+        } else {
+            window = NSWindow(
+                contentRect: anchorRect,
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.hasShadow = false
+            window.level = .statusBar
+            window.ignoresMouseEvents = true
+            window.collectionBehavior = [.canJoinAllSpaces, .transient]
+            window.isReleasedWhenClosed = false
+            fallbackAnchorWindow = window
+        }
+
+        window.setFrame(anchorRect, display: false)
+        window.orderFrontRegardless()
+
+        guard let anchorView = window.contentView else { return }
+        // A borderless anchor window can't become key without the app
+        // being active — scoped here so the normal status-item path never
+        // steals activation from the user's frontmost app.
+        NSApp.activate(ignoringOtherApps: true)
+        popover.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
     }
 
     private func closePopover() {

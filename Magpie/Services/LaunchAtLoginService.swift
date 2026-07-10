@@ -2,6 +2,7 @@ import Foundation
 import ServiceManagement
 import SwiftUI
 import AppKit
+import Combine
 
 /// The subset of `SMAppService` this service needs. Abstracting it lets
 /// launch-at-login orchestration (persistence, repair, failure-revert) be
@@ -30,6 +31,7 @@ struct SystemLoginItemControl: LoginItemControlling {
 @MainActor
 final class LaunchAtLoginService: ObservableObject {
     static let desiredEnabledKey = "launchAtLoginDesired"
+    static let healStampKey = "launchAtLoginHealStamp"
 
     enum MoveResult: Equatable {
         case moved
@@ -40,14 +42,21 @@ final class LaunchAtLoginService: ObservableObject {
 
     @Published var isEnabled: Bool {
         didSet {
-            guard !isRevertingFromFailure, isEnabled != oldValue else { return }
+            guard !isSyncingFromSystem, isEnabled != oldValue else { return }
             setLoginItem(enabled: isEnabled)
         }
     }
 
-    private var isRevertingFromFailure = false
+    /// Live registration status, published so UI like the
+    /// requires-approval notice updates when the status changes behind
+    /// the app's back (e.g. the user approves the item in System
+    /// Settings and switches back to Magpie).
+    @Published private(set) var status: SMAppService.Status
+
+    private var isSyncingFromSystem = false
     private let control: LoginItemControlling
     private let defaults: UserDefaults
+    private var cancellables = Set<AnyCancellable>()
 
     init(
         control: LoginItemControlling = SystemLoginItemControl(),
@@ -58,7 +67,26 @@ final class LaunchAtLoginService: ObservableObject {
         // Reflect the current system state — no auto-registration here;
         // repair of dropped registrations happens once per launch in
         // healRegistrationIfNeeded().
-        isEnabled = control.status == .enabled
+        let initialStatus = control.status
+        status = initialStatus
+        isEnabled = initialStatus == .enabled
+
+        // Status can change outside the app (approval granted in System
+        // Settings); re-read it whenever the app becomes active.
+        NotificationCenter.default.publisher(
+            for: NSApplication.didBecomeActiveNotification
+        )
+        .sink { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshStatus()
+            }
+        }
+        .store(in: &cancellables)
+    }
+
+    /// Re-reads the registration status from the system.
+    func refreshStatus() {
+        status = control.status
     }
 
     // MARK: - Public
@@ -68,7 +96,7 @@ final class LaunchAtLoginService: ObservableObject {
     /// Returns `true` if a repair registration was attempted successfully.
     @discardableResult
     func healRegistrationIfNeeded() -> Bool {
-        let status = control.status
+        refreshStatus()
 
         // Users who enabled launch-at-login before the choice was
         // persisted have no stored preference — capture it from the
@@ -81,12 +109,22 @@ final class LaunchAtLoginService: ObservableObject {
         }
 
         let desired = defaults.bool(forKey: Self.desiredEnabledKey)
-        guard LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: desired, status: status) else {
+        guard LoginItemRepairRules.shouldAttemptRepair(
+            desiredEnabled: desired,
+            status: status,
+            alreadyRepairedInThisEnvironment:
+                defaults.string(forKey: Self.healStampKey) == Self.currentHealStamp
+        ) else {
             return false
         }
 
+        // Stamp before attempting (not after success) so a failing repair
+        // doesn't retry — and potentially nag — on every launch.
+        defaults.set(Self.currentHealStamp, forKey: Self.healStampKey)
+
         do {
             try control.register()
+            refreshStatus()
             print("[Magpie] Launch at login: repaired dropped registration")
             return true
         } catch {
@@ -95,32 +133,54 @@ final class LaunchAtLoginService: ObservableObject {
         }
     }
 
+    /// Identifies the (app build, macOS version) environment a repair ran
+    /// in. Registration drops caused by macOS happen when this changes —
+    /// an update replaced the bundle, or the OS was upgraded.
+    static var currentHealStamp: String {
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        return "\(build)-\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+    }
+
     /// Registers or unregisters the login item. Called from didSet and
     /// also from the onboarding flow.
     func setLoginItem(enabled: Bool) {
-        do {
-            if enabled {
+        if enabled {
+            do {
                 try control.register()
-            } else if control.status != .notRegistered {
-                try control.unregister()
+            } catch {
+                print("[Magpie] Launch at login error: \(error)")
+                // Revert without re-triggering setLoginItem from didSet.
+                if isEnabled != false {
+                    isSyncingFromSystem = true
+                    isEnabled = false
+                    isSyncingFromSystem = false
+                }
+                refreshStatus()
+                return
             }
-            defaults.set(enabled, forKey: Self.desiredEnabledKey)
-        } catch {
-            print("[Magpie] Launch at login error: \(error)")
-            // Revert on failure without re-triggering setLoginItem from didSet
-            let reverted = !enabled
-            if isEnabled != reverted {
-                isRevertingFromFailure = true
-                isEnabled = reverted
-                isRevertingFromFailure = false
+            // A fresh explicit opt-in resets the once-per-environment
+            // repair budget: a later drop should be repairable again.
+            defaults.removeObject(forKey: Self.healStampKey)
+        } else if control.status != .notRegistered {
+            // A throw here (e.g. a stale .notFound registration) must not
+            // trap the user with a toggle that snaps back on — honor the
+            // disable regardless.
+            do {
+                try control.unregister()
+            } catch {
+                print("[Magpie] Launch at login: unregister failed, disabling anyway: \(error)")
             }
         }
+
+        defaults.set(enabled, forKey: Self.desiredEnabledKey)
+        refreshStatus()
     }
 
     /// True when registration succeeded but the user still has to approve
     /// the login item in System Settings before it takes effect.
     var requiresApproval: Bool {
-        control.status == .requiresApproval
+        status == .requiresApproval
     }
 
     func openLoginItemsSettings() {
@@ -129,7 +189,7 @@ final class LaunchAtLoginService: ObservableObject {
 
     /// The current registration status, useful for displaying in the UI.
     var statusDescription: String {
-        switch control.status {
+        switch status {
         case .enabled:
             return "Enabled"
         case .notRegistered:
@@ -181,8 +241,8 @@ final class LaunchAtLoginService: ObservableObject {
         // The login item registration points at this (old) location.
         // Unregister it so the copy in /Applications can register cleanly:
         // healRegistrationIfNeeded() reads the persisted choice on next launch.
-        let status = control.status
-        if status == .enabled || status == .requiresApproval {
+        let registrationStatus = control.status
+        if registrationStatus == .enabled || registrationStatus == .requiresApproval {
             try? control.unregister()
         }
 

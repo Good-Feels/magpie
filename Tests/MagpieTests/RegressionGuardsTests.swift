@@ -6,25 +6,57 @@ import ServiceManagement
 final class RegressionGuardsTests: XCTestCase {
     func testLoginItemRepairRunsWhenDesiredAndRegistrationDropped() {
         XCTAssertTrue(
-            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .notRegistered)
+            LoginItemRepairRules.shouldAttemptRepair(
+                desiredEnabled: true,
+                status: .notRegistered,
+                alreadyRepairedInThisEnvironment: false
+            )
         )
         XCTAssertTrue(
-            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .notFound)
+            LoginItemRepairRules.shouldAttemptRepair(
+                desiredEnabled: true,
+                status: .notFound,
+                alreadyRepairedInThisEnvironment: false
+            )
         )
     }
 
     func testLoginItemRepairSkippedWhenAlreadyEnabledOrAwaitingApproval() {
         XCTAssertFalse(
-            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .enabled)
+            LoginItemRepairRules.shouldAttemptRepair(
+                desiredEnabled: true,
+                status: .enabled,
+                alreadyRepairedInThisEnvironment: false
+            )
         )
         XCTAssertFalse(
-            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: true, status: .requiresApproval)
+            LoginItemRepairRules.shouldAttemptRepair(
+                desiredEnabled: true,
+                status: .requiresApproval,
+                alreadyRepairedInThisEnvironment: false
+            )
         )
     }
 
     func testLoginItemRepairSkippedWhenUserNeverOptedIn() {
         XCTAssertFalse(
-            LoginItemRepairRules.shouldAttemptRepair(desiredEnabled: false, status: .notRegistered)
+            LoginItemRepairRules.shouldAttemptRepair(
+                desiredEnabled: false,
+                status: .notRegistered,
+                alreadyRepairedInThisEnvironment: false
+            )
+        )
+    }
+
+    func testLoginItemRepairRespectsUserRemovalInSameEnvironment() {
+        // Same (build, OS) environment already repaired once — a second
+        // drop means the user removed it in System Settings; don't fight.
+        XCTAssertFalse(
+            LoginItemRepairRules.shouldAttemptRepair(
+                desiredEnabled: true,
+                status: .notRegistered,
+                alreadyRepairedInThisEnvironment: true
+            )
         )
     }
 
@@ -48,6 +80,109 @@ final class RegressionGuardsTests: XCTestCase {
         XCTAssertNil(
             LoginItemRepairRules.backfillDesiredValue(storedDesired: nil, statusIsEnabled: false)
         )
+    }
+
+    func testManualDownloadOfferedOnlyForUserInitiatedRealFailures() {
+        let realFailure = 1002 // SUAppcastError
+
+        XCTAssertTrue(
+            UpdateFailureRules.shouldOfferManualDownload(
+                errorDomain: "SUSparkleErrorDomain",
+                errorCode: realFailure,
+                userInitiated: true
+            )
+        )
+        // Background scheduled check failing (offline laptop) — silent.
+        XCTAssertFalse(
+            UpdateFailureRules.shouldOfferManualDownload(
+                errorDomain: "SUSparkleErrorDomain",
+                errorCode: realFailure,
+                userInitiated: false
+            )
+        )
+    }
+
+    func testManualDownloadNotOfferedForRoutineAborts() {
+        let noUpdateFound = 1001 // SUNoUpdateError
+        let userCanceled = 4007  // SUInstallationCanceledError
+
+        XCTAssertFalse(
+            UpdateFailureRules.shouldOfferManualDownload(
+                errorDomain: "SUSparkleErrorDomain",
+                errorCode: noUpdateFound,
+                userInitiated: true
+            )
+        )
+        XCTAssertFalse(
+            UpdateFailureRules.shouldOfferManualDownload(
+                errorDomain: "SUSparkleErrorDomain",
+                errorCode: userCanceled,
+                userInitiated: true
+            )
+        )
+    }
+
+    func testManualDownloadNotOfferedForNonSparkleErrors() {
+        XCTAssertFalse(
+            UpdateFailureRules.shouldOfferManualDownload(
+                errorDomain: "NSURLErrorDomain",
+                errorCode: -1009,
+                userInitiated: true
+            )
+        )
+    }
+
+    func testStatusItemEvictedWhenPushedOffAllScreens() {
+        let screens = [CGRect(x: 0, y: 0, width: 1512, height: 982)]
+        // macOS parks evicted status items far outside the screen bounds.
+        let evictedFrame = CGRect(x: 20000, y: 960, width: 24, height: 22)
+
+        XCTAssertTrue(
+            StatusItemVisibilityRules.isConfidentlyEvicted(
+                buttonWindowFrame: evictedFrame,
+                screenFrames: screens
+            )
+        )
+    }
+
+    func testStatusItemNotEvictedWhenOnScreenEvenIfOccluded() {
+        // Locked screen / fullscreen app / auto-hidden menu bar: the item
+        // stays inside the screen frame, so no "menu bar full" warning.
+        let screens = [CGRect(x: 0, y: 0, width: 1512, height: 982)]
+        let onScreenFrame = CGRect(x: 1200, y: 960, width: 24, height: 22)
+
+        XCTAssertFalse(
+            StatusItemVisibilityRules.isConfidentlyEvicted(
+                buttonWindowFrame: onScreenFrame,
+                screenFrames: screens
+            )
+        )
+    }
+
+    func testHiddenStatusItemAlertRendersLiveShortcut() {
+        let body = HiddenStatusItemCopy.alertBody(shortcutText: "⌃⌥C")
+
+        XCTAssertTrue(body.contains("⌃⌥C"))
+        XCTAssertFalse(body.contains("⌘⇧V"))
+    }
+
+    func testHiddenStatusItemAlertHandlesClearedShortcut() {
+        let body = HiddenStatusItemCopy.alertBody(shortcutText: nil)
+
+        XCTAssertFalse(body.contains("⌘⇧V"))
+        XCTAssertTrue(body.localizedCaseInsensitiveContains("settings"))
+    }
+
+    func testFallbackPopoverAnchorSitsAtTopCenterOfScreen() {
+        // Hotkey with a hidden status item must anchor the popover
+        // on-screen, not to the off-screen status item window.
+        let screen = CGRect(x: 0, y: 0, width: 1512, height: 950)
+
+        let anchor = PopoverAnchorRules.fallbackAnchorRect(visibleFrame: screen)
+
+        XCTAssertTrue(screen.contains(anchor), "Anchor must be on-screen")
+        XCTAssertEqual(anchor.midX, screen.midX, accuracy: 1)
+        XCTAssertEqual(anchor.maxY, screen.maxY, accuracy: 1)
     }
 
     func testMoveActionHiddenWhenRunningFromApplications() {
@@ -261,6 +396,70 @@ final class RegressionGuardsTests: XCTestCase {
 
         XCTAssertFalse(service.isEnabled)
         XCTAssertNil(defaults.object(forKey: LaunchAtLoginService.desiredEnabledKey))
+    }
+
+    @MainActor
+    func testDisableWinsEvenWhenUnregisterThrows() {
+        // A stale .notFound registration mustn't trap the user with a
+        // toggle that snaps back on and a heal loop that re-registers.
+        let control = FakeLoginItemControl(status: .notFound)
+        control.unregisterError = TestError.boom
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLoginService.desiredEnabledKey)
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+
+        service.setLoginItem(enabled: false)
+
+        XCTAssertEqual(
+            defaults.object(forKey: LaunchAtLoginService.desiredEnabledKey) as? Bool,
+            false
+        )
+        XCTAssertFalse(service.isEnabled)
+    }
+
+    @MainActor
+    func testHealRepairsOnlyOncePerEnvironment() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLoginService.desiredEnabledKey)
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+
+        XCTAssertTrue(service.healRegistrationIfNeeded())
+
+        // User removes Magpie in System Settings > Login Items; the next
+        // launch in the same (build, OS) environment must respect that.
+        control.status = .notRegistered
+        XCTAssertFalse(service.healRegistrationIfNeeded())
+        XCTAssertEqual(control.registerCallCount, 1)
+    }
+
+    @MainActor
+    func testExplicitReenableResetsRepairBudget() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLoginService.desiredEnabledKey)
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+
+        service.healRegistrationIfNeeded()      // consumes the repair budget
+        service.setLoginItem(enabled: true)     // fresh explicit opt-in
+
+        control.status = .notRegistered         // macOS drops it again
+        XCTAssertTrue(service.healRegistrationIfNeeded())
+    }
+
+    @MainActor
+    func testRefreshStatusPublishesExternalApproval() {
+        // User approves the item in System Settings and switches back —
+        // the requires-approval notice must clear.
+        let control = FakeLoginItemControl(status: .requiresApproval)
+        let service = LaunchAtLoginService(control: control, defaults: makeDefaults())
+        XCTAssertTrue(service.requiresApproval)
+
+        control.status = .enabled
+        service.refreshStatus()
+
+        XCTAssertFalse(service.requiresApproval)
+        XCTAssertEqual(service.statusDescription, "Enabled")
     }
 }
 

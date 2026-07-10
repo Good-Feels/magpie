@@ -54,8 +54,15 @@ final class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         }
     }
 
+    /// True while the current update cycle was started by the user.
+    /// Sparkle reports background scheduled checks and manual checks
+    /// through the same delegate callbacks; only user-initiated failures
+    /// warrant an alert.
+    private var lastCheckWasUserInitiated = false
+
     /// Manually trigger an update check (e.g. from a "Check Now" button).
     func checkForUpdates() {
+        lastCheckWasUserInitiated = true
         updater.checkForUpdates()
     }
 
@@ -69,15 +76,29 @@ final class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
-        guard shouldOfferManualDownload(for: error as NSError) else { return }
-        presentManualDownloadAlert(for: error as NSError)
+        let nsError = error as NSError
+        guard UpdateFailureRules.shouldOfferManualDownload(
+            errorDomain: nsError.domain,
+            errorCode: nsError.code,
+            userInitiated: lastCheckWasUserInitiated
+        ) else { return }
+        presentManualDownloadAlert(for: nsError)
     }
 
-    private func shouldOfferManualDownload(for error: NSError) -> Bool {
-        error.domain == SUSparkleErrorDomain
+    func updater(
+        _ updater: SPUUpdater,
+        didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
+        error: Error?
+    ) {
+        // The cycle is over either way; the next one is background-
+        // initiated unless checkForUpdates() runs again.
+        lastCheckWasUserInitiated = false
     }
 
     private func presentManualDownloadAlert(for error: NSError) {
+        // Accessory apps don't get key status automatically; without
+        // activating, the modal can open behind the frontmost app.
+        NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = "Update failed"
