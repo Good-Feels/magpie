@@ -31,9 +31,9 @@ struct ShortcutSettingsView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button("Set Default (⌘⇧V)") {
+                    Button("Set Default (\(KeyboardShortcuts.Shortcut.layoutAwareDefault))") {
                         KeyboardShortcuts.setShortcut(
-                            .init(.v, modifiers: [.command, .shift]),
+                            .layoutAwareDefault,
                             for: .toggleClipboardHistory
                         )
                         refresh()

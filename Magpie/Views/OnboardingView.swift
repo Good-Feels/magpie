@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import ClipboardEngine
+import KeyboardShortcuts
 
 /// Multi-step first-launch onboarding:
 ///   1. Welcome — branding + Launch at Login toggle
@@ -19,6 +20,14 @@ struct OnboardingView: View {
     @State private var currentStep: Step = .welcome
     @State private var launchAtLogin = true
     @State private var accessAttempted = false
+
+    /// The hotkey as the user's keyboard layout labels it — never a
+    /// hardcoded "⌘⇧V", which is wrong on Dvorak/AZERTY/etc.
+    private var activeShortcutLabel: String {
+        let shortcut = KeyboardShortcuts.getShortcut(for: .toggleClipboardHistory)
+            ?? .layoutAwareDefault
+        return String(describing: shortcut)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -267,7 +276,7 @@ struct OnboardingView: View {
                 )
                 instructionRow(
                     icon: "command",
-                    title: "Press ⌘⇧V",
+                    title: "Press \(activeShortcutLabel)",
                     detail: "Open your clipboard history from any app"
                 )
                 instructionRow(

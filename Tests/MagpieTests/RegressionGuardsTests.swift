@@ -173,6 +173,57 @@ final class RegressionGuardsTests: XCTestCase {
         XCTAssertTrue(body.localizedCaseInsensitiveContains("settings"))
     }
 
+    // MARK: - Keyboard layout
+
+    func testDefaultShortcutTypesVOnCurrentLayout() {
+        // The default must follow the key that TYPES "v" — on Dvorak the
+        // physical QWERTY-V position types "k", so a position-based
+        // default advertises a hotkey that doesn't exist.
+        let label = String(describing: KeyboardShortcuts.Shortcut.layoutAwareDefault)
+
+        XCTAssertTrue(
+            label.hasSuffix("V"),
+            "Layout-aware default should render as ⌘⇧V on every layout, got \(label)"
+        )
+    }
+
+    func testKeyCodeLookupRoundTrips() {
+        let code = KeyboardLayoutResolver.keyCode(forCharacter: "v")
+
+        XCTAssertNotNil(code, "Every Latin layout has a key that types 'v'")
+    }
+
+    func testLegacyShortcutMigratesOnlyWhenItIsTheStoredDefault() {
+        let legacy = KeyboardShortcuts.Shortcut(.v, modifiers: [.command, .shift])
+        let layoutAware = KeyboardShortcuts.Shortcut(.k, modifiers: [.command, .shift])
+        let custom = KeyboardShortcuts.Shortcut(.c, modifiers: [.command, .option])
+
+        // Stored legacy default on a layout where "v" moved → migrate.
+        XCTAssertTrue(
+            ShortcutLayoutRules.shouldMigrateStoredShortcut(
+                stored: legacy, legacyDefault: legacy, layoutAwareDefault: layoutAware
+            )
+        )
+        // User customized their shortcut → never touch it.
+        XCTAssertFalse(
+            ShortcutLayoutRules.shouldMigrateStoredShortcut(
+                stored: custom, legacyDefault: legacy, layoutAwareDefault: layoutAware
+            )
+        )
+        // QWERTY (layout-aware == legacy) → nothing to migrate.
+        XCTAssertFalse(
+            ShortcutLayoutRules.shouldMigrateStoredShortcut(
+                stored: legacy, legacyDefault: legacy, layoutAwareDefault: legacy
+            )
+        )
+        // Nothing stored → the Name default applies on its own.
+        XCTAssertFalse(
+            ShortcutLayoutRules.shouldMigrateStoredShortcut(
+                stored: nil, legacyDefault: legacy, layoutAwareDefault: layoutAware
+            )
+        )
+    }
+
     func testFallbackPopoverAnchorSitsAtTopCenterOfScreen() {
         // Hotkey with a hidden status item must anchor the popover
         // on-screen, not to the off-screen status item window.

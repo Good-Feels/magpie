@@ -45,6 +45,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
 
         // Global hotkey: toggle popover from anywhere
+        migrateShortcutForKeyboardLayoutIfNeeded()
         KeyboardShortcuts.onKeyUp(for: .toggleClipboardHistory) { [weak self] in
             self?.togglePopover()
         }
@@ -72,6 +73,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
         }
+    }
+
+    // MARK: - Shortcut Migration
+
+    /// Pre-1.0.10 builds stored the physical QWERTY-V shortcut for every
+    /// user. On non-QWERTY layouts (Dvorak, AZERTY, …) that key doesn't
+    /// type "v", so the hotkey the UI advertised never worked. One-time:
+    /// move a stored legacy default to the layout-aware one. Customized
+    /// shortcuts don't match the legacy default and are untouched.
+    private func migrateShortcutForKeyboardLayoutIfNeeded() {
+        let migratedKey = "didMigrateShortcutToKeyboardLayout"
+        guard !UserDefaults.standard.bool(forKey: migratedKey) else { return }
+        UserDefaults.standard.set(true, forKey: migratedKey)
+
+        guard ShortcutLayoutRules.shouldMigrateStoredShortcut(
+            stored: KeyboardShortcuts.getShortcut(for: .toggleClipboardHistory),
+            legacyDefault: .legacyPhysicalDefault,
+            layoutAwareDefault: .layoutAwareDefault
+        ) else { return }
+
+        KeyboardShortcuts.setShortcut(.layoutAwareDefault, for: .toggleClipboardHistory)
+        print("[Magpie] Migrated hotkey to layout-aware default: \(KeyboardShortcuts.Shortcut.layoutAwareDefault)")
     }
 
     // MARK: - Status Item (Menu Bar Icon)
