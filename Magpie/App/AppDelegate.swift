@@ -13,6 +13,7 @@ import KeyboardShortcuts
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     let appState = AppState()
     private let analytics = AnalyticsService.shared
+    private let diagnostics = AppSessionDiagnostics.shared
 
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
@@ -20,9 +21,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var onboardingWindow: NSWindow?
     private var fallbackAnchorWindow: NSWindow?
     private var eventMonitor: Any?
+    private var diagnosticHeartbeatTimer: Timer?
+    private var statusItemHealthTimer: Timer?
+    private var workspaceWakeObserver: NSObjectProtocol?
+    private var screenChangeObserver: NSObjectProtocol?
+    private var consecutiveDetachedStatusItemChecks = 0
     private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        diagnostics.beginSession()
+        ProcessInfo.processInfo.disableAutomaticTermination("Magpie clipboard monitoring")
+
         // Run as a menu-bar-only app (no Dock icon).
         NSApp.setActivationPolicy(.accessory)
         let bundleID = Bundle.main.bundleIdentifier ?? "unknown"
@@ -35,6 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         setupPopover()
         setupEventMonitor()
         setupAccessStateMonitoring()
+        setupRecoveryMonitoring()
 
         // Give AppState callbacks for dismiss and settings
         appState.onDismiss = { [weak self] in
@@ -46,9 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // Global hotkey: toggle popover from anywhere
         migrateShortcutForKeyboardLayoutIfNeeded()
-        KeyboardShortcuts.onKeyUp(for: .toggleClipboardHistory) { [weak self] in
-            self?.togglePopover()
-        }
+        registerGlobalShortcut()
 
         // Show onboarding on first launch.
         if !hasCompletedOnboarding {
@@ -70,9 +78,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         appState.stopMonitoring()
         analytics.flush()
+        diagnosticHeartbeatTimer?.invalidate()
+        statusItemHealthTimer?.invalidate()
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
         }
+        if let observer = workspaceWakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+        if let observer = screenChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        diagnostics.endSession()
+    }
+
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        diagnostics.record("application_reopened visible_windows=\(flag)")
+
+        if let onboardingWindow, onboardingWindow.isVisible {
+            onboardingWindow.makeKeyAndOrderFront(nil)
+            sender.activate(ignoringOtherApps: true)
+        } else if let settingsWindow, settingsWindow.isVisible {
+            settingsWindow.makeKeyAndOrderFront(nil)
+            sender.activate(ignoringOtherApps: true)
+        } else if !popover.isShown {
+            showPopover(trigger: "reopen")
+        }
+        return true
     }
 
     // MARK: - Shortcut Migration
@@ -107,9 +142,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 systemSymbolName: "doc.on.clipboard",
                 accessibilityDescription: "Magpie"
             )
-            button.action = #selector(togglePopover)
+            button.action = #selector(handleStatusItemClick)
             button.target = self
         }
+    }
+
+    /// If Control Center has detached the underlying status-item scene,
+    /// replace it in place. This is distinct from a merely full menu bar:
+    /// evicted items still have a window and use the fallback popover anchor.
+    private func repairStatusItemIfDetached(reason: String) {
+        guard statusItem?.button?.window == nil else {
+            consecutiveDetachedStatusItemChecks = 0
+            return
+        }
+
+        diagnostics.record("status_item_recreated reason=\(reason)")
+        if let statusItem {
+            NSStatusBar.system.removeStatusItem(statusItem)
+        }
+        setupStatusItem()
+        consecutiveDetachedStatusItemChecks = 0
     }
 
     // MARK: - Menu Bar Visibility
@@ -188,15 +240,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         fallbackAnchorWindow?.orderOut(nil)
     }
 
-    @objc private func togglePopover() {
+    @objc private func handleStatusItemClick() {
+        togglePopover(trigger: "status_item")
+    }
+
+    private func togglePopover(trigger: String) {
+        diagnostics.record("popover_toggle_received trigger=\(trigger)")
         if popover.isShown {
             closePopover()
         } else {
-            showPopover()
+            showPopover(trigger: trigger)
         }
     }
 
-    private func showPopover() {
+    private func showPopover(trigger: String) {
+        repairStatusItemIfDetached(reason: trigger)
+
         // Refresh clipboard access state each time the popover opens
         appState.accessChecker.checkAccess()
         appState.loadClips()
@@ -208,9 +267,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // appears dead. Fall back to an on-screen anchor instead.
         if let button = statusItem.button, isStatusItemVisible() {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            diagnostics.record("popover_opened trigger=\(trigger) anchor=status_item")
         } else {
             print("[Magpie] Status item hidden — showing popover from fallback anchor")
             showPopoverFromFallbackAnchor()
+            diagnostics.record("popover_opened trigger=\(trigger) anchor=fallback")
         }
 
         // Ensure the popover window becomes key so the search bar gets focus
@@ -274,6 +335,73 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 self.closePopover()
             }
         }
+    }
+
+    // MARK: - Recovery Monitoring
+
+    private func registerGlobalShortcut() {
+        KeyboardShortcuts.onKeyUp(for: .toggleClipboardHistory) { [weak self] in
+            self?.togglePopover(trigger: "global_shortcut")
+        }
+    }
+
+    private func setupRecoveryMonitoring() {
+        diagnosticHeartbeatTimer = Timer.scheduledTimer(
+            withTimeInterval: 300,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.diagnostics.heartbeat()
+            }
+        }
+        diagnosticHeartbeatTimer?.tolerance = 30
+
+        // Require two failed checks so a transient screen-layout change does
+        // not churn a healthy item. Direct hotkey/reopen attempts repair it
+        // immediately because the user is actively asking for UI.
+        statusItemHealthTimer = Timer.scheduledTimer(
+            withTimeInterval: 30,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                if self.statusItem?.button?.window == nil {
+                    self.consecutiveDetachedStatusItemChecks += 1
+                    if self.consecutiveDetachedStatusItemChecks >= 2 {
+                        self.repairStatusItemIfDetached(reason: "health_check")
+                    }
+                } else {
+                    self.consecutiveDetachedStatusItemChecks = 0
+                }
+            }
+        }
+        statusItemHealthTimer?.tolerance = 5
+
+        workspaceWakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.recoverAfterSystemTransition(reason: "wake")
+            }
+        }
+
+        screenChangeObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.recoverAfterSystemTransition(reason: "screen_change")
+            }
+        }
+    }
+
+    private func recoverAfterSystemTransition(reason: String) {
+        diagnostics.record("system_transition reason=\(reason)")
+        registerGlobalShortcut()
+        repairStatusItemIfDetached(reason: reason)
     }
 
     private func setupAccessStateMonitoring() {

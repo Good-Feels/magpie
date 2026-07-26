@@ -14,12 +14,43 @@ if [[ ! -f "$SOURCE_ICON" ]]; then
     exit 1
 fi
 
+# Asset compilation is expensive and depends on Xcode plug-ins. Reuse the
+# checked build outputs when the source artwork has not changed.
+if [[ -f "$OUT_DIR/AppIcon.icns" && -f "$OUT_DIR/Assets.car" && \
+      "$OUT_DIR/AppIcon.icns" -nt "$SOURCE_ICON" && \
+      "$OUT_DIR/Assets.car" -nt "$SOURCE_ICON" ]]; then
+    rm -rf "$TMP_DIR"
+    echo "App icon assets are up to date."
+    exit 0
+fi
+
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if ! "$PYTHON_BIN" -c 'from PIL import Image, ImageChops, ImageDraw' >/dev/null 2>&1; then
+    PYTHON_BIN=""
+    for candidate in \
+        /opt/homebrew/anaconda3/bin/python3 \
+        /opt/homebrew/bin/python3 \
+        /usr/local/bin/python3 \
+        /usr/bin/python3; do
+        if [[ -x "$candidate" ]] && \
+            "$candidate" -c 'from PIL import Image, ImageChops, ImageDraw' >/dev/null 2>&1; then
+            PYTHON_BIN="$candidate"
+            break
+        fi
+    done
+fi
+
+if [[ -z "$PYTHON_BIN" ]]; then
+    echo "ERROR: A native Python 3 installation with Pillow is required to generate the app icon."
+    exit 1
+fi
+
 mkdir -p "$OUT_DIR"
 rm -rf "$TMP_DIR"
 mkdir -p "$ICONSET_DIR" "$BUILD_DIR"
 rm -rf "$OUT_DIR/AppIcon.iconset"
 
-python3 - "$SOURCE_ICON" "$ICONSET_DIR" <<'PY'
+"$PYTHON_BIN" - "$SOURCE_ICON" "$ICONSET_DIR" <<'PY'
 import json
 import os
 import sys

@@ -159,6 +159,27 @@ final class RegressionGuardsTests: XCTestCase {
         )
     }
 
+    func testPreviousUncleanSessionIsReportedAsUnexpected() {
+        XCTAssertTrue(
+            SessionHealthRules.previousSessionEndedUnexpectedly(
+                hasPreviousSession: true,
+                endedCleanly: false
+            )
+        )
+        XCTAssertFalse(
+            SessionHealthRules.previousSessionEndedUnexpectedly(
+                hasPreviousSession: true,
+                endedCleanly: true
+            )
+        )
+        XCTAssertFalse(
+            SessionHealthRules.previousSessionEndedUnexpectedly(
+                hasPreviousSession: false,
+                endedCleanly: false
+            )
+        )
+    }
+
     func testHiddenStatusItemAlertRendersLiveShortcut() {
         let body = HiddenStatusItemCopy.alertBody(shortcutText: "⌃⌥C")
 

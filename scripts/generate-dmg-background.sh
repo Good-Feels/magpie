@@ -7,7 +7,28 @@ ICON_PATH="${2:-$PROJECT_DIR/app-icon.png}"
 
 mkdir -p "$(dirname "$OUT_PATH")"
 
-python3 - "$OUT_PATH" "$ICON_PATH" <<'PY'
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if ! "$PYTHON_BIN" -c 'from PIL import Image, ImageDraw, ImageFilter, ImageFont' >/dev/null 2>&1; then
+    PYTHON_BIN=""
+    for candidate in \
+        /opt/homebrew/anaconda3/bin/python3 \
+        /opt/homebrew/bin/python3 \
+        /usr/local/bin/python3 \
+        /usr/bin/python3; do
+        if [[ -x "$candidate" ]] && \
+            "$candidate" -c 'from PIL import Image, ImageDraw, ImageFilter, ImageFont' >/dev/null 2>&1; then
+            PYTHON_BIN="$candidate"
+            break
+        fi
+    done
+fi
+
+if [[ -z "$PYTHON_BIN" ]]; then
+    echo "ERROR: A native Python 3 installation with Pillow is required to generate the DMG background."
+    exit 1
+fi
+
+"$PYTHON_BIN" - "$OUT_PATH" "$ICON_PATH" <<'PY'
 import os
 import sys
 

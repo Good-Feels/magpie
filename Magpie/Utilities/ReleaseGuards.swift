@@ -74,6 +74,15 @@ enum StatusItemVisibilityRules {
     }
 }
 
+enum SessionHealthRules {
+    static func previousSessionEndedUnexpectedly(
+        hasPreviousSession: Bool,
+        endedCleanly: Bool
+    ) -> Bool {
+        hasPreviousSession && !endedCleanly
+    }
+}
+
 enum HiddenStatusItemCopy {
     /// Alert body for the hidden-status-item warning. The shortcut is
     /// user-configurable (and clearable), so the copy must render the
