@@ -506,6 +506,21 @@ final class RegressionGuardsTests: XCTestCase {
     }
 
     @MainActor
+    func testFailedHealRemainsRetryable() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        control.registerError = TestError.boom
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLoginService.desiredEnabledKey)
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+
+        XCTAssertFalse(service.healRegistrationIfNeeded())
+
+        control.registerError = nil
+        XCTAssertTrue(service.healRegistrationIfNeeded())
+        XCTAssertEqual(control.registerCallCount, 2)
+    }
+
+    @MainActor
     func testExplicitReenableResetsRepairBudget() {
         let control = FakeLoginItemControl(status: .notRegistered)
         let defaults = makeDefaults()
@@ -531,6 +546,7 @@ final class RegressionGuardsTests: XCTestCase {
         service.refreshStatus()
 
         XCTAssertFalse(service.requiresApproval)
+        XCTAssertTrue(service.isEnabled)
         XCTAssertEqual(service.statusDescription, "Enabled")
     }
 }

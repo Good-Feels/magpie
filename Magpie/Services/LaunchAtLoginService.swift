@@ -86,7 +86,15 @@ final class LaunchAtLoginService: ObservableObject {
 
     /// Re-reads the registration status from the system.
     func refreshStatus() {
-        status = control.status
+        let liveStatus = control.status
+        status = liveStatus
+
+        let liveEnabled = liveStatus == .enabled
+        if isEnabled != liveEnabled {
+            isSyncingFromSystem = true
+            isEnabled = liveEnabled
+            isSyncingFromSystem = false
+        }
     }
 
     // MARK: - Public
@@ -118,13 +126,13 @@ final class LaunchAtLoginService: ObservableObject {
             return false
         }
 
-        // Stamp before attempting (not after success) so a failing repair
-        // doesn't retry — and potentially nag — on every launch.
-        defaults.set(Self.currentHealStamp, forKey: Self.healStampKey)
-
         do {
             try control.register()
             refreshStatus()
+            // Only a successful registration consumes the repair budget.
+            // Transient ServiceManagement failures must remain retryable on
+            // the next launch, or Magpie can stay unavailable indefinitely.
+            defaults.set(Self.currentHealStamp, forKey: Self.healStampKey)
             print("[Magpie] Launch at login: repaired dropped registration")
             return true
         } catch {
@@ -181,6 +189,10 @@ final class LaunchAtLoginService: ObservableObject {
     /// the login item in System Settings before it takes effect.
     var requiresApproval: Bool {
         status == .requiresApproval
+    }
+
+    var isDesiredEnabled: Bool {
+        defaults.bool(forKey: Self.desiredEnabledKey)
     }
 
     func openLoginItemsSettings() {

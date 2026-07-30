@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     let appState = AppState()
     private let analytics = AnalyticsService.shared
     private let diagnostics = AppSessionDiagnostics.shared
+    private let launchAtLoginService = LaunchAtLoginService()
 
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
@@ -21,16 +22,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var onboardingWindow: NSWindow?
     private var fallbackAnchorWindow: NSWindow?
     private var eventMonitor: Any?
+    private var persistenceActivity: NSObjectProtocol?
     private var diagnosticHeartbeatTimer: Timer?
     private var statusItemHealthTimer: Timer?
     private var workspaceWakeObserver: NSObjectProtocol?
     private var screenChangeObserver: NSObjectProtocol?
     private var consecutiveDetachedStatusItemChecks = 0
+    private var hasShownLoginItemProblem = false
     private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         diagnostics.beginSession()
-        ProcessInfo.processInfo.disableAutomaticTermination("Magpie clipboard monitoring")
+        beginPersistenceActivity()
 
         // Run as a menu-bar-only app (no Dock icon).
         NSApp.setActivationPolicy(.accessory)
@@ -71,7 +74,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // updates replacing the bundle). Deferred so the synchronous
         // SMAppService XPC calls don't delay menu bar setup at login.
         Task { @MainActor in
-            LaunchAtLoginService().healRegistrationIfNeeded()
+            let repaired = launchAtLoginService.healRegistrationIfNeeded()
+            diagnostics.record(
+                "login_item_checked desired=\(launchAtLoginService.isDesiredEnabled) "
+                    + "status=\(launchAtLoginService.statusDescription) repaired=\(repaired)"
+            )
+
+            if hasCompletedOnboarding {
+                showLoginItemProblemIfNeeded()
+            }
         }
     }
 
@@ -90,6 +101,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             NotificationCenter.default.removeObserver(observer)
         }
         diagnostics.endSession()
+        endPersistenceActivity()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        diagnostics.record("last_window_closed termination_refused")
+        return false
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        diagnostics.record("termination_requested")
+        return .terminateNow
     }
 
     func applicationShouldHandleReopen(
@@ -345,6 +367,40 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
+    /// Clipboard monitoring is the app's primary work, so an empty window
+    /// list is an idle UI state rather than a reason for macOS to terminate
+    /// the process. Retaining an activity token protects both automatic and
+    /// sudden termination paths for the lifetime of the app.
+    private func beginPersistenceActivity() {
+        guard persistenceActivity == nil else { return }
+
+        let processInfo = ProcessInfo.processInfo
+        processInfo.disableAutomaticTermination("Magpie clipboard monitoring")
+        processInfo.disableSuddenTermination()
+        persistenceActivity = processInfo.beginActivity(
+            options: [
+                .automaticTerminationDisabled,
+                .suddenTerminationDisabled,
+                .background,
+            ],
+            reason: "Magpie clipboard monitoring"
+        )
+        diagnostics.record(
+            "termination_protection_enabled "
+                + "automatic_support=\(processInfo.automaticTerminationSupportEnabled)"
+        )
+    }
+
+    private func endPersistenceActivity() {
+        let processInfo = ProcessInfo.processInfo
+        if let persistenceActivity {
+            processInfo.endActivity(persistenceActivity)
+            self.persistenceActivity = nil
+        }
+        processInfo.enableAutomaticTermination("Magpie clipboard monitoring")
+        processInfo.enableSuddenTermination()
+    }
+
     private func setupRecoveryMonitoring() {
         diagnosticHeartbeatTimer = Timer.scheduledTimer(
             withTimeInterval: 300,
@@ -400,8 +456,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func recoverAfterSystemTransition(reason: String) {
         diagnostics.record("system_transition reason=\(reason)")
+        beginPersistenceActivity()
         registerGlobalShortcut()
         repairStatusItemIfDetached(reason: reason)
+    }
+
+    private func showLoginItemProblemIfNeeded() {
+        guard launchAtLoginService.isDesiredEnabled,
+              launchAtLoginService.status != .enabled,
+              !hasShownLoginItemProblem
+        else { return }
+
+        hasShownLoginItemProblem = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            guard let self,
+                  self.launchAtLoginService.isDesiredEnabled,
+                  self.launchAtLoginService.status != .enabled
+            else { return }
+
+            NSApp.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = "Magpie isn't allowed to launch at login"
+            alert.informativeText = """
+                Magpie needs to stay open to save your clipboard history. \
+                macOS currently reports “\(self.launchAtLoginService.statusDescription)”.
+
+                Allow Magpie in System Settings → General → Login Items so \
+                it is available after every login.
+                """
+            alert.addButton(withTitle: "Open Login Items Settings")
+            alert.addButton(withTitle: "Not Now")
+            if alert.runModal() == .alertFirstButtonReturn {
+                self.launchAtLoginService.openLoginItemsSettings()
+            }
+        }
     }
 
     private func setupAccessStateMonitoring() {
