@@ -1,6 +1,9 @@
 name: Release Direct (DMG)
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -18,6 +21,9 @@ permissions:
 jobs:
   build-release:
     runs-on: macos-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      NOTARIZE: ${{ github.event_name == 'push' || inputs.notarize }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +31,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check tag exists
-        run: git rev-parse "${{ github.event.inputs.tag }}"
+        run: git rev-parse "$RELEASE_TAG"
 
       - name: Import Developer ID certificate
         env:
@@ -48,7 +54,7 @@ jobs:
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
       - name: Configure notarytool profile
-        if: ${{ github.event.inputs.notarize == 'true' }}
+        if: ${{ env.NOTARIZE == 'true' }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -71,10 +77,10 @@ jobs:
             echo "Missing MACOS_SIGN_IDENTITY secret."
             exit 1
           fi
-          if [[ "${{ github.event.inputs.notarize }}" == "true" ]]; then
+          if [[ "$NOTARIZE" == "true" ]]; then
             ./scripts/build-release.sh \
               --sign-identity "$SIGN_IDENTITY" \
-              --tag "${{ github.event.inputs.tag }}" \
+              --tag "$RELEASE_TAG" \
               --repo "${{ github.repository }}" \
               --skip-appcast \
               --notarize \
@@ -82,7 +88,7 @@ jobs:
           else
             ./scripts/build-release.sh \
               --sign-identity "$SIGN_IDENTITY" \
-              --tag "${{ github.event.inputs.tag }}" \
+              --tag "$RELEASE_TAG" \
               --repo "${{ github.repository }}" \
               --skip-appcast
           fi
@@ -91,8 +97,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.inputs.tag }}"
-          gh release create "$TAG" \
+          gh release create "$RELEASE_TAG" \
             --repo "${{ github.repository }}" \
             --verify-tag \
             --generate-notes \
