@@ -132,6 +132,7 @@ struct ClipboardHistoryView: View {
             Spacer()
 
             Button {
+                AppSessionDiagnostics.shared.markIntentionalQuit()
                 NSApp.terminate(nil)
             } label: {
                 Text("Quit")

@@ -1,4 +1,8 @@
+import Darwin
 import Foundation
+#if canImport(MagpieKeeperCore)
+import MagpieKeeperCore
+#endif
 import OSLog
 
 /// Persists a small, content-free lifecycle trail so a future report can
@@ -8,21 +12,15 @@ import OSLog
 final class AppSessionDiagnostics {
     static let shared = AppSessionDiagnostics()
 
-    private struct SessionState: Codable {
-        let id: UUID
-        let startedAt: Date
-        var lastHeartbeatAt: Date
-        var endedCleanly: Bool
-    }
-
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.magpie.app",
         category: "Lifecycle"
     )
     private let fileManager = FileManager.default
     private let stateURL: URL?
+    private let quitMarkerURL: URL?
     private let logURL: URL?
-    private var session: SessionState?
+    private var session: KeeperSessionState?
 
     private init() {
         let directory = try? fileManager
@@ -36,15 +34,18 @@ final class AppSessionDiagnostics {
 
         if let directory {
             try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-            stateURL = directory.appendingPathComponent("session-state.json")
+            stateURL = directory.appendingPathComponent(KeeperFileNames.sessionState)
+            quitMarkerURL = directory.appendingPathComponent(KeeperFileNames.intentionalQuit)
             logURL = directory.appendingPathComponent("lifecycle.log")
         } else {
             stateURL = nil
+            quitMarkerURL = nil
             logURL = nil
         }
     }
 
     func beginSession() {
+        clearIntentionalQuitMarker()
         let previous = loadState()
         if SessionHealthRules.previousSessionEndedUnexpectedly(
             hasPreviousSession: previous != nil,
@@ -57,7 +58,7 @@ final class AppSessionDiagnostics {
         }
 
         let now = Date()
-        session = SessionState(
+        session = KeeperSessionState(
             id: UUID(),
             startedAt: now,
             lastHeartbeatAt: now,
@@ -86,17 +87,45 @@ final class AppSessionDiagnostics {
         record("session_ended_cleanly")
     }
 
+    /// Suppresses watchdog recovery for an explicit Quit during this login
+    /// session. A new login has a different audit session ID, so launch at
+    /// login still works without requiring a persistent user preference.
+    func markIntentionalQuit() {
+        let marker = KeeperQuitMarker(
+            auditSessionID: audit_session_self(),
+            recordedAt: Date()
+        )
+        guard let quitMarkerURL,
+              let data = try? JSONEncoder().encode(marker)
+        else { return }
+
+        do {
+            try data.write(to: quitMarkerURL, options: .atomic)
+            record("intentional_quit audit_session=\(marker.auditSessionID)")
+        } catch {
+            record("intentional_quit_marker_failed error=\(error.localizedDescription)")
+        }
+    }
+
     func record(_ event: String) {
         logger.notice("\(event, privacy: .public)")
         appendToLocalLog("\(Self.timestamp(Date())) \(event)\n")
     }
 
-    private func loadState() -> SessionState? {
+    private func loadState() -> KeeperSessionState? {
         guard let stateURL,
               let data = try? Data(contentsOf: stateURL)
         else { return nil }
 
-        return try? JSONDecoder().decode(SessionState.self, from: data)
+        return try? JSONDecoder().decode(KeeperSessionState.self, from: data)
+    }
+
+    private func clearIntentionalQuitMarker() {
+        guard let quitMarkerURL,
+              fileManager.fileExists(atPath: quitMarkerURL.path)
+        else { return }
+
+        try? fileManager.removeItem(at: quitMarkerURL)
     }
 
     private func persistState() {

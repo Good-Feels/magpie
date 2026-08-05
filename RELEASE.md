@@ -9,7 +9,9 @@ For sandboxed Sparkle updates, do not sign `Magpie.app` with `codesign --deep`.
 The working pattern is:
 - re-sign Sparkle's embedded helpers first
 - sign `Sparkle.framework`
+- sign the embedded `MagpieKeeper` launch agent
 - sign the top-level `Magpie.app` with entitlements, but without `--deep`
+- require a trusted timestamp on every release signature
 
 If you accidentally sign the app with `--deep`, Sparkle may still download and extract the update, but fail at installer launch with errors like:
 - `Failed to submit installer job`
@@ -103,8 +105,9 @@ This produces:
 Hard gates before proceeding:
 1. Script exits successfully.
 2. Notarization completes (no errors in output).
-3. `appcast.xml` contains a new enclosure URL for your tag and includes `sparkle:edSignature`.
-4. Auto-update smoke test from the previous installed version succeeds before trusting the release as an updater base.
+3. The script confirms the app signature has a trusted timestamp.
+4. `appcast.xml` contains a new enclosure URL for your tag and includes `sparkle:edSignature`.
+5. Auto-update smoke test from the previous installed version succeeds before trusting the release as an updater base.
 
 ### 3. Commit appcast update
 
@@ -142,6 +145,10 @@ gh release create "$TAG" \
 4. Test one real Sparkle hop from the prior installed version to the new version:
    - expected: download, extract, authorize, install, and relaunch all succeed.
    - if it fails after extraction or installer launch, inspect macOS logs for `Magpie`, `Installer`, and `org.sparkle-project.Sparkle`.
+5. With Launch at Login enabled, terminate the main Magpie process without clicking Quit:
+   - expected: `MagpieKeeper` remains running and Magpie reopens within a few seconds.
+6. Click **Quit** in Magpie:
+   - expected: Magpie stays closed for the rest of the current login session.
 
 ## Fast Rollback
 

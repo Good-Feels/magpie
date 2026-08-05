@@ -24,6 +24,8 @@ ENTITLEMENTS_FILE="$PROJECT_DIR/Magpie/Magpie.entitlements"
 ICON_SOURCE="$PROJECT_DIR/app-icon.png"
 ICON_ICNS="$PROJECT_DIR/Magpie/Resources/AppIcon.icns"
 ASSETS_CAR="$PROJECT_DIR/Magpie/Resources/Assets.car"
+KEEPER_PLIST="$PROJECT_DIR/Support/com.goodfeels.magpie.keeper.plist"
+KEEPER_PLIST_NAME="com.goodfeels.magpie.keeper.plist"
 DMG_BG_IMAGE="$DIST_DIR/.dmg-background.png"
 APPCAST_PATH="$PROJECT_DIR/appcast.xml"
 
@@ -138,6 +140,14 @@ if [[ "$NOTARIZE" == true && -z "$KEYCHAIN_PROFILE" ]]; then
     fi
 fi
 
+if [[ -n "$SIGN_IDENTITY" ]] &&
+    ! security find-identity -v -p codesigning | grep -Fq "$SIGN_IDENTITY"; then
+    echo "ERROR: Signing identity is not currently valid or has no accessible private key:"
+    echo "       $SIGN_IDENTITY"
+    echo "       Renew/import it before building; an expired untimestamped release will stop validating."
+    exit 1
+fi
+
 if [[ ! -f "$INFO_PLIST" ]]; then
     echo "ERROR: Info.plist not found at $INFO_PLIST"
     exit 1
@@ -145,6 +155,16 @@ fi
 
 if [[ ! -f "$ENTITLEMENTS_FILE" ]]; then
     echo "ERROR: Entitlements file not found at $ENTITLEMENTS_FILE"
+    exit 1
+fi
+
+if [[ ! -f "$KEEPER_PLIST" ]]; then
+    echo "ERROR: Keeper launch-agent plist not found at $KEEPER_PLIST"
+    exit 1
+fi
+
+if ! plutil -lint "$KEEPER_PLIST" >/dev/null; then
+    echo "ERROR: Keeper launch-agent plist is invalid."
     exit 1
 fi
 
@@ -184,8 +204,15 @@ echo "==> Generating app icon..."
 "$PROJECT_DIR/scripts/generate-app-icon.sh" "$ICON_SOURCE" "$PROJECT_DIR/Magpie/Resources"
 
 echo "==> Assembling app bundle..."
-mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Frameworks" "$APP_BUNDLE/Contents/Resources"
+mkdir -p \
+    "$APP_BUNDLE/Contents/MacOS" \
+    "$APP_BUNDLE/Contents/Frameworks" \
+    "$APP_BUNDLE/Contents/Resources" \
+    "$APP_BUNDLE/Contents/Library/LaunchAgents" \
+    "$APP_BUNDLE/Contents/Library/LaunchServices"
 cp "$BUILD_DIR/Magpie" "$APP_BUNDLE/Contents/MacOS/Magpie"
+cp "$BUILD_DIR/MagpieKeeper" "$APP_BUNDLE/Contents/Library/LaunchServices/MagpieKeeper"
+cp "$KEEPER_PLIST" "$APP_BUNDLE/Contents/Library/LaunchAgents/$KEEPER_PLIST_NAME"
 cp "$INFO_PLIST" "$APP_BUNDLE/Contents/Info.plist"
 cp "$ICON_ICNS" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 if [[ -f "$ASSETS_CAR" ]]; then
@@ -211,37 +238,49 @@ if [[ -n "$SIGN_IDENTITY" ]]; then
 
         echo "==> Signing embedded Sparkle helpers..."
         if [[ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc" ]]; then
-            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+            codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
                 "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc"
         fi
 
         if [[ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc" ]]; then
-            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+            codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
                 --preserve-metadata=entitlements \
                 "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc"
         fi
 
         if [[ -f "$EMBEDDED_SPARKLE_CURRENT/Autoupdate" ]]; then
-            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+            codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
                 "$EMBEDDED_SPARKLE_CURRENT/Autoupdate"
         fi
 
         if [[ -d "$EMBEDDED_SPARKLE_CURRENT/Updater.app" ]]; then
-            codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+            codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
                 "$EMBEDDED_SPARKLE_CURRENT/Updater.app"
         fi
 
-        codesign --force --options runtime --sign "$SIGN_IDENTITY" "$EMBEDDED_SPARKLE_FW"
+        codesign --force --options runtime --timestamp \
+            --sign "$SIGN_IDENTITY" "$EMBEDDED_SPARKLE_FW"
     fi
 
+    echo "==> Signing keeper launch agent..."
+    codesign --force --options runtime --timestamp \
+        --sign "$SIGN_IDENTITY" \
+        "$APP_BUNDLE/Contents/Library/LaunchServices/MagpieKeeper"
+
     echo "==> Signing app with: $SIGN_IDENTITY"
-    codesign --force --options runtime \
+    codesign --force --options runtime --timestamp \
         --sign "$SIGN_IDENTITY" \
         --entitlements "$RESOLVED_ENTITLEMENTS" \
         "$APP_BUNDLE"
 
     echo "==> Verifying app signature..."
     codesign --verify --deep --strict "$APP_BUNDLE"
+    SIGNING_DETAILS="$(codesign -dvvv "$APP_BUNDLE" 2>&1)"
+    SIGNING_TIMESTAMP="$(sed -n 's/^Timestamp=//p' <<<"$SIGNING_DETAILS" | head -n 1)"
+    if [[ -z "$SIGNING_TIMESTAMP" || "$SIGNING_TIMESTAMP" == "none" ]]; then
+        echo "ERROR: App signature has no trusted timestamp."
+        exit 1
+    fi
     spctl --assess --type execute --verbose "$APP_BUNDLE" || true
 else
     echo "==> Skipping signing (unsigned test build)"
@@ -340,7 +379,8 @@ rm -f "$RW_DMG_PATH"
 
 if [[ -n "$SIGN_IDENTITY" ]]; then
     echo "==> Signing DMG..."
-    codesign --force --sign "$SIGN_IDENTITY" "$DMG_PATH"
+    codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG_PATH"
+    codesign --verify --strict "$DMG_PATH"
 fi
 
 if [[ "$NOTARIZE" == true ]]; then

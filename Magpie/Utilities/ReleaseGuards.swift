@@ -58,6 +58,72 @@ enum UpdateFailureRules {
             && errorDomain == SUSparkleErrorDomain
             && !routineAbortCodes.contains(errorCode)
     }
+
+    static func isDownloadFailure(errorDomain: String, errorCode: Int) -> Bool {
+        errorDomain == SUSparkleErrorDomain
+            && errorCode == Int(SUError.downloadError.rawValue)
+    }
+
+    static func failingURL(in error: NSError) -> URL? {
+        if let url = error.userInfo[NSURLErrorFailingURLErrorKey] as? URL {
+            return url
+        }
+
+        if let urlString = error.userInfo[NSURLErrorFailingURLStringErrorKey] as? String,
+           let url = URL(string: urlString) {
+            return url
+        }
+
+        if let underlyingError = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+            return failingURL(in: underlyingError)
+        }
+
+        return nil
+    }
+
+    static func assetAvailability(forHTTPStatusCode statusCode: Int?) -> UpdateAssetAvailability {
+        guard let statusCode else { return .unknown }
+
+        switch statusCode {
+        case 200..<400:
+            return .available
+        case 404:
+            return .missing
+        default:
+            return .unknown
+        }
+    }
+
+    static func presentation(for availability: UpdateAssetAvailability) -> UpdateFailurePresentation {
+        switch availability {
+        case .available:
+            return UpdateFailurePresentation(
+                title: "Update download interrupted",
+                message: "The update file is online, but the download did not complete. Wait a few minutes and try again."
+            )
+        case .missing:
+            return UpdateFailurePresentation(
+                title: "Update isn’t ready yet",
+                message: "The update was announced before its download finished publishing. Wait a few minutes and try again."
+            )
+        case .unknown:
+            return UpdateFailurePresentation(
+                title: "Couldn’t download the update",
+                message: "Magpie couldn’t verify the update file. Check your internet connection and try again, or download it from the latest release page."
+            )
+        }
+    }
+}
+
+enum UpdateAssetAvailability: Equatable {
+    case available
+    case missing
+    case unknown
+}
+
+struct UpdateFailurePresentation: Equatable {
+    let title: String
+    let message: String
 }
 
 enum StatusItemVisibilityRules {

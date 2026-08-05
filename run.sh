@@ -7,6 +7,8 @@ APP_BUNDLE="$PROJECT_DIR/Magpie.app"
 ICON_ICNS="$PROJECT_DIR/Magpie/Resources/AppIcon.icns"
 ASSETS_CAR="$PROJECT_DIR/Magpie/Resources/Assets.car"
 INFO_PLIST="$PROJECT_DIR/Magpie/Info.plist"
+KEEPER_PLIST="$PROJECT_DIR/Support/com.goodfeels.magpie.keeper.plist"
+DEV_KEEPER_PLIST_NAME="com.goodfeels.magpie.dev.keeper.plist"
 
 echo "Building Magpie..."
 cd "$PROJECT_DIR"
@@ -19,7 +21,12 @@ echo "Assembling .app bundle..."
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Frameworks"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
+rm -rf "$APP_BUNDLE/Contents/Library/LaunchAgents" "$APP_BUNDLE/Contents/Library/LaunchServices"
+mkdir -p "$APP_BUNDLE/Contents/Library/LaunchAgents"
+mkdir -p "$APP_BUNDLE/Contents/Library/LaunchServices"
 cp -f .build/debug/Magpie "$APP_BUNDLE/Contents/MacOS/Magpie"
+cp -f .build/debug/MagpieKeeper "$APP_BUNDLE/Contents/Library/LaunchServices/MagpieKeeper"
+cp -f "$KEEPER_PLIST" "$APP_BUNDLE/Contents/Library/LaunchAgents/$DEV_KEEPER_PLIST_NAME"
 cp -f "$INFO_PLIST" "$APP_BUNDLE/Contents/Info.plist"
 
 # Give the dev build its own bundle ID. A second copy of
@@ -27,6 +34,8 @@ cp -f "$INFO_PLIST" "$APP_BUNDLE/Contents/Info.plist"
 # Management resolve the login item to the wrong (stale) bundle, which
 # breaks launch-at-login for the installed app.
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.goodfeels.magpie.dev" "$APP_BUNDLE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :Label com.goodfeels.magpie.dev.keeper" \
+    "$APP_BUNDLE/Contents/Library/LaunchAgents/$DEV_KEEPER_PLIST_NAME"
 cp -f "$ICON_ICNS" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 if [ -f "$ASSETS_CAR" ]; then
     cp -f "$ASSETS_CAR" "$APP_BUNDLE/Contents/Resources/Assets.car"
@@ -42,39 +51,49 @@ if [ -d "$SPARKLE_FW" ]; then
 fi
 
 # Code-sign so macOS recognises the app for privacy prompts (clipboard, etc.)
-echo "Signing..."
+REQUESTED_SIGN_IDENTITY="${MAGPIE_SIGN_IDENTITY:-Apple Development}"
+if security find-identity -v -p codesigning | grep -Fq "$REQUESTED_SIGN_IDENTITY"; then
+    CODE_SIGN_IDENTITY="$REQUESTED_SIGN_IDENTITY"
+    echo "Signing with $CODE_SIGN_IDENTITY..."
+else
+    CODE_SIGN_IDENTITY="-"
+    echo "No valid '$REQUESTED_SIGN_IDENTITY' identity found; signing ad hoc for local use..."
+fi
+
 EMBEDDED_SPARKLE_FW="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
 if [ -d "$EMBEDDED_SPARKLE_FW" ]; then
     EMBEDDED_SPARKLE_CURRENT="$(cd "$EMBEDDED_SPARKLE_FW/Versions/Current" && pwd)"
 
     if [ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc" ]; then
-        codesign --force --sign "Apple Development" \
+        codesign --force --sign "$CODE_SIGN_IDENTITY" \
             "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Installer.xpc"
     fi
 
     if [ -d "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc" ]; then
-        codesign --force --sign "Apple Development" \
+        codesign --force --sign "$CODE_SIGN_IDENTITY" \
             --preserve-metadata=entitlements \
             "$EMBEDDED_SPARKLE_CURRENT/XPCServices/Downloader.xpc"
     fi
 
     if [ -f "$EMBEDDED_SPARKLE_CURRENT/Autoupdate" ]; then
-        codesign --force --sign "Apple Development" \
+        codesign --force --sign "$CODE_SIGN_IDENTITY" \
             "$EMBEDDED_SPARKLE_CURRENT/Autoupdate"
     fi
 
     if [ -d "$EMBEDDED_SPARKLE_CURRENT/Updater.app" ]; then
-        codesign --force --sign "Apple Development" \
+        codesign --force --sign "$CODE_SIGN_IDENTITY" \
             "$EMBEDDED_SPARKLE_CURRENT/Updater.app"
     fi
 
-    codesign --force --sign "Apple Development" "$EMBEDDED_SPARKLE_FW"
+    codesign --force --sign "$CODE_SIGN_IDENTITY" "$EMBEDDED_SPARKLE_FW"
 fi
 
-codesign --force --sign "Apple Development" "$APP_BUNDLE"
+codesign --force --sign "$CODE_SIGN_IDENTITY" \
+    "$APP_BUNDLE/Contents/Library/LaunchServices/MagpieKeeper"
+codesign --force --sign "$CODE_SIGN_IDENTITY" "$APP_BUNDLE"
 
-# Kill any existing instance
-killall Magpie 2>/dev/null && sleep 0.5 || true
+# Stop only this workspace's development copy, never the installed app.
+pkill -f "^$APP_BUNDLE/Contents/MacOS/Magpie$" 2>/dev/null && sleep 0.5 || true
 
 echo "Launching Magpie..."
 open "$APP_BUNDLE"

@@ -38,9 +38,13 @@ struct GeneralSettingsView: View {
         sectionCard("Startup") {
             Toggle("Launch at Login", isOn: $launchService.isEnabled)
 
+            Text("Also restores Magpie automatically if macOS closes it under storage pressure.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
             if launchService.requiresApproval {
                 HStack(spacing: 10) {
-                    Text("macOS needs your approval before Magpie can launch at login.")
+                    Text("macOS needs your approval before Magpie can run at login and recover automatically.")
                         .font(.caption)
                         .foregroundColor(.orange)
 

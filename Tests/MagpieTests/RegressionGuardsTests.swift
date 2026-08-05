@@ -132,6 +132,61 @@ final class RegressionGuardsTests: XCTestCase {
         )
     }
 
+    func testDownloadFailureRecognizesSparkleDownloadError() {
+        XCTAssertTrue(
+            UpdateFailureRules.isDownloadFailure(
+                errorDomain: "SUSparkleErrorDomain",
+                errorCode: 2001
+            )
+        )
+        XCTAssertFalse(
+            UpdateFailureRules.isDownloadFailure(
+                errorDomain: "NSURLErrorDomain",
+                errorCode: 2001
+            )
+        )
+    }
+
+    func testDownloadFailureFindsNestedAssetURL() {
+        let expectedURL = URL(
+            string: "https://github.com/Good-Feels/magpie/releases/download/v1.0.13/Magpie.dmg"
+        )!
+        let underlyingError = NSError(
+            domain: NSURLErrorDomain,
+            code: NSURLErrorBadServerResponse,
+            userInfo: [NSURLErrorFailingURLErrorKey: expectedURL]
+        )
+        let sparkleError = NSError(
+            domain: "SUSparkleErrorDomain",
+            code: 2001,
+            userInfo: [NSUnderlyingErrorKey: underlyingError]
+        )
+
+        XCTAssertEqual(UpdateFailureRules.failingURL(in: sparkleError), expectedURL)
+    }
+
+    func testAssetAvailabilityUsesHTTPStatus() {
+        XCTAssertEqual(UpdateFailureRules.assetAvailability(forHTTPStatusCode: 200), .available)
+        XCTAssertEqual(UpdateFailureRules.assetAvailability(forHTTPStatusCode: 302), .available)
+        XCTAssertEqual(UpdateFailureRules.assetAvailability(forHTTPStatusCode: 404), .missing)
+        XCTAssertEqual(UpdateFailureRules.assetAvailability(forHTTPStatusCode: 503), .unknown)
+        XCTAssertEqual(UpdateFailureRules.assetAvailability(forHTTPStatusCode: nil), .unknown)
+    }
+
+    func testPublishedAssetFailureSuggestsWaiting() {
+        let presentation = UpdateFailureRules.presentation(for: .available)
+
+        XCTAssertTrue(presentation.message.localizedCaseInsensitiveContains("online"))
+        XCTAssertTrue(presentation.message.localizedCaseInsensitiveContains("wait a few minutes"))
+    }
+
+    func testMissingAssetExplainsPublishingDelay() {
+        let presentation = UpdateFailureRules.presentation(for: .missing)
+
+        XCTAssertTrue(presentation.message.localizedCaseInsensitiveContains("publishing"))
+        XCTAssertTrue(presentation.message.localizedCaseInsensitiveContains("wait a few minutes"))
+    }
+
     func testStatusItemEvictedWhenPushedOffAllScreens() {
         let screens = [CGRect(x: 0, y: 0, width: 1512, height: 982)]
         // macOS parks evicted status items far outside the screen bounds.
@@ -446,6 +501,22 @@ final class RegressionGuardsTests: XCTestCase {
     }
 
     @MainActor
+    func testHealMigratesLegacyMainAppRegistrationToKeeper() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        control.legacyMainAppWasEnabled = true
+        let defaults = makeDefaults()
+
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+        let repaired = service.healRegistrationIfNeeded()
+
+        XCTAssertTrue(repaired)
+        XCTAssertEqual(control.registerCallCount, 1)
+        XCTAssertTrue(defaults.bool(forKey: LaunchAtLoginService.desiredEnabledKey))
+        XCTAssertTrue(service.isEnabled)
+        XCTAssertFalse(control.legacyMainAppWasEnabled)
+    }
+
+    @MainActor
     func testSetLoginItemPersistsChoiceOnSuccess() {
         let control = FakeLoginItemControl(status: .notRegistered)
         let defaults = makeDefaults()
@@ -487,6 +558,20 @@ final class RegressionGuardsTests: XCTestCase {
             false
         )
         XCTAssertFalse(service.isEnabled)
+    }
+
+    @MainActor
+    func testDisableRemovesLegacyMainAppRegistrationWhenKeeperIsMissing() {
+        let control = FakeLoginItemControl(status: .notRegistered)
+        control.legacyMainAppWasEnabled = true
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: LaunchAtLoginService.desiredEnabledKey)
+        let service = LaunchAtLoginService(control: control, defaults: defaults)
+
+        service.setLoginItem(enabled: false)
+
+        XCTAssertEqual(control.unregisterCallCount, 1)
+        XCTAssertFalse(defaults.bool(forKey: LaunchAtLoginService.desiredEnabledKey))
     }
 
     @MainActor
@@ -555,6 +640,7 @@ private enum TestError: Error { case boom }
 
 private final class FakeLoginItemControl: LoginItemControlling {
     var status: SMAppService.Status
+    var legacyMainAppWasEnabled = false
     var registerCallCount = 0
     var unregisterCallCount = 0
     var registerError: Error?
@@ -568,11 +654,13 @@ private final class FakeLoginItemControl: LoginItemControlling {
         registerCallCount += 1
         if let registerError { throw registerError }
         status = .enabled
+        legacyMainAppWasEnabled = false
     }
 
     func unregister() throws {
         unregisterCallCount += 1
         if let unregisterError { throw unregisterError }
         status = .notRegistered
+        legacyMainAppWasEnabled = false
     }
 }

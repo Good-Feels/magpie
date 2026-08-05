@@ -23,21 +23,28 @@ final class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     /// Whether an update check is currently in progress.
     @Published var canCheckForUpdates: Bool = false
 
-    private lazy var updaterController: SPUStandardUpdaterController = {
-        SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: self,
-            userDriverDelegate: nil
+    private lazy var userDriver = ReleaseAwareUserDriver(hostBundle: .main)
+
+    private lazy var updater: SPUUpdater = {
+        SPUUpdater(
+            hostBundle: .main,
+            applicationBundle: .main,
+            userDriver: userDriver,
+            delegate: self
         )
     }()
-
-    private lazy var updater: SPUUpdater = updaterController.updater
     private var observation: NSKeyValueObservation?
 
     override init() {
         automaticallyChecksForUpdates = false
 
         super.init()
+
+        do {
+            try updater.start()
+        } catch {
+            userDriver.showUpdaterError(error, acknowledgement: {})
+        }
 
         automaticallyChecksForUpdates = updater.automaticallyChecksForUpdates
         updater.updateCheckInterval = Self.updateCheckInterval
@@ -75,8 +82,16 @@ final class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         updater.lastUpdateCheckDate
     }
 
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        userDriver.setLatestUpdateFileURL(item.fileURL)
+    }
+
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
         let nsError = error as NSError
+        if userDriver.consumeHandledDownloadFailure() {
+            return
+        }
+
         guard UpdateFailureRules.shouldOfferManualDownload(
             errorDomain: nsError.domain,
             errorCode: nsError.code,
@@ -93,6 +108,7 @@ final class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         // The cycle is over either way; the next one is background-
         // initiated unless checkForUpdates() runs again.
         lastCheckWasUserInitiated = false
+        userDriver.setLatestUpdateFileURL(nil)
     }
 
     private func presentManualDownloadAlert(for error: NSError) {
@@ -112,6 +128,88 @@ final class SoftwareUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             downloadLatestVersion()
+        }
+    }
+}
+
+@MainActor
+private final class ReleaseAwareUserDriver: SPUStandardUserDriver {
+    typealias AssetProbe = (URL) async -> UpdateAssetAvailability
+
+    private let assetProbe: AssetProbe
+    private var latestUpdateFileURL: URL?
+    private var handledDownloadFailure = false
+
+    init(
+        hostBundle: Bundle,
+        assetProbe: @escaping AssetProbe = ReleaseAwareUserDriver.probeAssetAvailability
+    ) {
+        self.assetProbe = assetProbe
+        super.init(hostBundle: hostBundle, delegate: nil)
+    }
+
+    override func showUpdaterError(
+        _ error: Error,
+        acknowledgement: @escaping () -> Void
+    ) {
+        let nsError = error as NSError
+        guard UpdateFailureRules.isDownloadFailure(
+            errorDomain: nsError.domain,
+            errorCode: nsError.code
+        ), let failingURL = UpdateFailureRules.failingURL(in: nsError) ?? latestUpdateFileURL else {
+            super.showUpdaterError(error, acknowledgement: acknowledgement)
+            return
+        }
+
+        handledDownloadFailure = true
+
+        Task {
+            let availability = await assetProbe(failingURL)
+            let presentation = UpdateFailureRules.presentation(for: availability)
+            let contextualError = NSError(
+                domain: nsError.domain,
+                code: nsError.code,
+                userInfo: [
+                    NSLocalizedDescriptionKey: presentation.title,
+                    NSLocalizedRecoverySuggestionErrorKey: presentation.message,
+                    NSUnderlyingErrorKey: nsError,
+                ]
+            )
+            presentUpdaterError(contextualError, acknowledgement: acknowledgement)
+        }
+    }
+
+    func setLatestUpdateFileURL(_ url: URL?) {
+        latestUpdateFileURL = url
+    }
+
+    func consumeHandledDownloadFailure() -> Bool {
+        defer { handledDownloadFailure = false }
+        return handledDownloadFailure
+    }
+
+    private func presentUpdaterError(
+        _ error: Error,
+        acknowledgement: @escaping () -> Void
+    ) {
+        super.showUpdaterError(error, acknowledgement: acknowledgement)
+    }
+
+    private static func probeAssetAvailability(at url: URL) async -> UpdateAssetAvailability {
+        var request = URLRequest(
+            url: url,
+            cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+            timeoutInterval: 10
+        )
+        request.httpMethod = "HEAD"
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            return UpdateFailureRules.assetAvailability(
+                forHTTPStatusCode: (response as? HTTPURLResponse)?.statusCode
+            )
+        } catch {
+            return .unknown
         }
     }
 }

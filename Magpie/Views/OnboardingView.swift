@@ -89,7 +89,7 @@ struct OnboardingView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Toggle("Launch at Login", isOn: $launchAtLogin)
                             .font(.body.weight(.medium))
-                        Text("**Recommended** — Magpie runs in the background so your clipboard is always saved")
+                        Text("**Recommended** — starts Magpie at login and restores it if macOS closes it")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

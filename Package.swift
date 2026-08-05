@@ -15,6 +15,7 @@ let package = Package(
             name: "Magpie",
             dependencies: [
                 "ClipboardEngine",
+                "MagpieKeeperCore",
                 .product(name: "Sparkle", package: "Sparkle"),
                 "KeyboardShortcuts",
                 .product(name: "Mixpanel", package: "mixpanel-swift"),
@@ -26,10 +27,24 @@ let package = Package(
                 "Resources",
             ]
         ),
+        .target(
+            name: "MagpieKeeperCore",
+            path: "MagpieKeeperCore"
+        ),
+        .executableTarget(
+            name: "MagpieKeeper",
+            dependencies: ["MagpieKeeperCore"],
+            path: "MagpieKeeper"
+        ),
         .testTarget(
             name: "MagpieTests",
             dependencies: ["Magpie"],
             path: "Tests/MagpieTests"
+        ),
+        .testTarget(
+            name: "MagpieKeeperCoreTests",
+            dependencies: ["MagpieKeeperCore"],
+            path: "Tests/MagpieKeeperCoreTests"
         ),
     ]
 )

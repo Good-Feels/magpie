@@ -9,18 +9,71 @@ import Combine
 /// unit tested with a fake instead of mutating real system state.
 protocol LoginItemControlling {
     var status: SMAppService.Status { get }
+    var legacyMainAppWasEnabled: Bool { get }
     func register() throws
     func unregister() throws
 }
 
-/// Production implementation backed by the real login item.
-struct SystemLoginItemControl: LoginItemControlling {
-    var status: SMAppService.Status { SMAppService.mainApp.status }
-    func register() throws { try SMAppService.mainApp.register() }
-    func unregister() throws { try SMAppService.mainApp.unregister() }
+extension LoginItemControlling {
+    var legacyMainAppWasEnabled: Bool { false }
 }
 
-/// Wraps `SMAppService` to manage the "Launch at Login" preference.
+enum KeeperServiceConfiguration {
+    static var agentPlistName: String {
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.goodfeels.magpie"
+        return "\(bundleID).keeper.plist"
+    }
+}
+
+/// Production implementation backed by a launchd-managed recovery agent.
+/// The previous main-app login registration is removed after the keeper is
+/// live so updates migrate existing users without leaving duplicate jobs.
+struct SystemLoginItemControl: LoginItemControlling {
+    private var keeper: SMAppService {
+        SMAppService.agent(plistName: KeeperServiceConfiguration.agentPlistName)
+    }
+
+    var status: SMAppService.Status { keeper.status }
+
+    var legacyMainAppWasEnabled: Bool {
+        let legacyStatus = SMAppService.mainApp.status
+        return legacyStatus == .enabled || legacyStatus == .requiresApproval
+    }
+
+    func register() throws {
+        try keeper.register()
+        if legacyMainAppWasEnabled {
+            try? SMAppService.mainApp.unregister()
+        }
+    }
+
+    func unregister() throws {
+        var firstError: Error?
+
+        if keeper.status != .notRegistered {
+            do {
+                try keeper.unregister()
+            } catch {
+                firstError = error
+            }
+        }
+
+        if SMAppService.mainApp.status != .notRegistered {
+            do {
+                try SMAppService.mainApp.unregister()
+            } catch {
+                firstError = firstError ?? error
+            }
+        }
+
+        if let firstError {
+            throw firstError
+        }
+    }
+}
+
+/// Wraps `SMAppService` to manage the "Launch at Login" preference and
+/// the launchd-managed keeper that restores Magpie after forced exits.
 /// Requires macOS 13+ and a valid app bundle with a CFBundleIdentifier.
 ///
 /// Login item defaults to OFF on first launch (MAS-safe). The onboarding
@@ -111,7 +164,7 @@ final class LaunchAtLoginService: ObservableObject {
         // live registration so future drops can be repaired.
         if let backfill = LoginItemRepairRules.backfillDesiredValue(
             storedDesired: defaults.object(forKey: Self.desiredEnabledKey) as? Bool,
-            statusIsEnabled: status == .enabled
+            statusIsEnabled: status == .enabled || control.legacyMainAppWasEnabled
         ) {
             defaults.set(backfill, forKey: Self.desiredEnabledKey)
         }
@@ -147,7 +200,7 @@ final class LaunchAtLoginService: ObservableObject {
     static var currentHealStamp: String {
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         let os = ProcessInfo.processInfo.operatingSystemVersion
-        return "\(build)-\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+        return "keeper-v1-\(build)-\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
     }
 
     /// Registers or unregisters the login item. Called from didSet and
@@ -170,7 +223,7 @@ final class LaunchAtLoginService: ObservableObject {
             // A fresh explicit opt-in resets the once-per-environment
             // repair budget: a later drop should be repairable again.
             defaults.removeObject(forKey: Self.healStampKey)
-        } else if control.status != .notRegistered {
+        } else if control.status != .notRegistered || control.legacyMainAppWasEnabled {
             // A throw here (e.g. a stale .notFound registration) must not
             // trap the user with a toggle that snaps back on — honor the
             // disable regardless.

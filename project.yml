@@ -28,13 +28,15 @@ targets:
       - path: Magpie
         excludes:
           - Magpie.entitlements
+      - path: MagpieKeeperCore
     dependencies:
+      - target: MagpieKeeper
+        embed: false
+        link: false
       - package: ClipboardEngine
       - package: Sparkle
       - package: KeyboardShortcuts
       - package: Mixpanel
-    entitlements:
-      path: Magpie/Magpie.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.goodfeels.magpie
@@ -43,6 +45,42 @@ targets:
         INFOPLIST_FILE: Magpie/Info.plist
         CODE_SIGN_ENTITLEMENTS: Magpie/Magpie.entitlements
         GENERATE_INFOPLIST_FILE: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        DEVELOPMENT_TEAM: HTPHAYLD9X
+        CODE_SIGN_STYLE: Automatic
+      configs:
+        debug:
+          CODE_SIGN_IDENTITY: "Apple Development"
+        release:
+          CODE_SIGN_IDENTITY: "Apple Development"
+    postBuildScripts:
+      - name: Embed MagpieKeeper
+        script: |
+          set -euo pipefail
+          AGENT_DIR="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchAgents"
+          SERVICE_DIR="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Library/LaunchServices"
+          mkdir -p "$AGENT_DIR" "$SERVICE_DIR"
+          cp -f "${BUILT_PRODUCTS_DIR}/MagpieKeeper" "$SERVICE_DIR/MagpieKeeper"
+          cp -f "${SRCROOT}/Support/com.goodfeels.magpie.keeper.plist" \
+              "$AGENT_DIR/com.goodfeels.magpie.keeper.plist"
+        inputFiles:
+          - $(BUILT_PRODUCTS_DIR)/MagpieKeeper
+          - $(SRCROOT)/Support/com.goodfeels.magpie.keeper.plist
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchServices/MagpieKeeper
+          - $(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchAgents/com.goodfeels.magpie.keeper.plist
+
+  MagpieKeeper:
+    type: tool
+    platform: macOS
+    sources:
+      - path: MagpieKeeper
+      - path: MagpieKeeperCore
+    settings:
+      base:
+        PRODUCT_NAME: MagpieKeeper
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
         ENABLE_HARDENED_RUNTIME: YES
         DEVELOPMENT_TEAM: HTPHAYLD9X
         CODE_SIGN_STYLE: Automatic

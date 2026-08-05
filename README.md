@@ -96,13 +96,13 @@ Requires Xcode 15+ and macOS 13+.
 - **SQLite via [GRDB](https://github.com/groue/GRDB.swift)** — Fast, reliable local storage
 - **NSStatusItem + NSPopover** — Proper menu bar integration
 - **[Sparkle](https://sparkle-project.org)** — Auto-updates for direct distribution
-- **SMAppService** — Launch at login (macOS 13+)
+- **SMAppService + launchd** — Launch at login and recovery after forced system termination
 - **App Sandbox** — Mac App Store compatible
 
 ## Project Structure
 
 ```
-├── Package.swift                    # Root package (app executable)
+├── Package.swift                    # Root package (app + keeper executables)
 ├── ClipboardEngine/                 # Core logic (local Swift package)
 │   └── Sources/ClipboardEngine/
 │       ├── Models/ClipItem.swift    # Data model
@@ -113,6 +113,9 @@ Requires Xcode 15+ and macOS 13+.
 │   ├── Views/                       # SwiftUI views
 │   ├── Services/                    # Launch at login, exclusions, updater
 │   └── Magpie.entitlements          # App Sandbox for MAS compatibility
+├── MagpieKeeper/                    # launchd recovery agent executable
+├── MagpieKeeperCore/                # Testable recovery state and rules
+├── Support/                         # Embedded launch-agent property list
 ├── run.sh                           # Build & run for development
 └── scripts/build-release.sh         # Build signed DMG for distribution
 ```

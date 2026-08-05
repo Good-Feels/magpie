@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import ClipboardEngine
 
 @main
@@ -14,6 +15,15 @@ struct MagpieApp: App {
             PreferencesView()
                 .environmentObject(appDelegate.appState)
                 .environmentObject(appDelegate.appState.exclusionManager)
+        }
+        .commands {
+            CommandGroup(replacing: .appTermination) {
+                Button("Quit Magpie") {
+                    AppSessionDiagnostics.shared.markIntentionalQuit()
+                    NSApp.terminate(nil)
+                }
+                .keyboardShortcut("q")
+            }
         }
     }
 }
