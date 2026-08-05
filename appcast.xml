@@ -119,8 +119,16 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Good-Feels/magpie/releases/download/v1.0.13/Magpie.dmg" length="5484411" type="application/x-apple-diskimage" sparkle:edSignature="l3UBfKD96IYK1OfAbQ2xesdnz63NFjmqxV9Q6Id0ih4bLU40llM0gIZNjKe4CkaPJKVM/KAX3imlOTszlTF4Dw==" />
         </item>
+        <item>
+            <title>Magpie 1.0.14</title>
+            <pubDate>Wed, 05 Aug 2026 23:22:23 +0000</pubDate>
+            <sparkle:version>15</sparkle:version>
+            <sparkle:shortVersionString>1.0.14</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Good-Feels/magpie/releases/download/v1.0.14/Magpie.dmg" length="5486435" type="application/x-apple-diskimage" sparkle:edSignature="6qr8k6+Nb+V67TWPvhMmt35y+0aS1py7MW3i54GOhCskNGzbFhBXJvG54z1JPNGkaeVXTLNdz5emgMK44+97Dw==" />
+        </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: XVTtWztaQIN6OkMW94j9WEO4weJRwIqIouJmNFlqxOIM3/yYN8Qw4+ZL/LzuuZpMIvdB5hL61xOIYbFC/iseCw==
-length: 9225
+edSignature: snubaATYJIhkAKcL98PA+LwPkB2dxTmWxU/BktA7hmcPeE+cMojj2ywszwjjldOE1So+6ZxeF5KLL6v307x7Dg==
+length: 9835
 -->
