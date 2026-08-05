@@ -76,11 +76,19 @@ targets:
     platform: macOS
     sources:
       - path: MagpieKeeper
+        excludes:
+          - Info.plist
       - path: MagpieKeeperCore
     settings:
       base:
         PRODUCT_NAME: MagpieKeeper
+        PRODUCT_BUNDLE_IDENTIFIER: com.goodfeels.magpie.keeper
         MACOSX_DEPLOYMENT_TARGET: "13.0"
+        INFOPLIST_FILE: MagpieKeeper/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES
+        CODE_SIGN_ENTITLEMENTS: Support/MagpieKeeper.entitlements
+        MAGPIE_APPLICATION_BUNDLE_IDENTIFIER: com.goodfeels.magpie
         ENABLE_HARDENED_RUNTIME: YES
         DEVELOPMENT_TEAM: HTPHAYLD9X
         CODE_SIGN_STYLE: Automatic

@@ -34,7 +34,16 @@ let package = Package(
         .executableTarget(
             name: "MagpieKeeper",
             dependencies: ["MagpieKeeperCore"],
-            path: "MagpieKeeper"
+            path: "MagpieKeeper",
+            exclude: ["Info.plist"],
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "MagpieKeeper/Info.plist",
+                ]),
+            ]
         ),
         .testTarget(
             name: "MagpieTests",

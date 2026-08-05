@@ -82,6 +82,20 @@ final class KeeperRulesTests: XCTestCase {
         XCTAssertEqual(KeeperRules.retryDelay(afterFailureCount: 99), 60)
     }
 
+    func testDiagnosticDirectoriesUseRealHomeForSandboxedState() {
+        let home = URL(fileURLWithPath: "/Users/example", isDirectory: true)
+
+        XCTAssertEqual(
+            KeeperDiagnosticDirectories.urls(
+                homeDirectory: home,
+                applicationBundleID: "com.goodfeels.magpie"
+            ).map(\.path),
+            [
+                "/Users/example/Library/Containers/com.goodfeels.magpie/Data/Library/Application Support/Magpie",
+            ]
+        )
+    }
+
     private func decision(
         appIsRunning: Bool = false,
         sessionState: KeeperSessionState?,

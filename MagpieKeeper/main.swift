@@ -24,8 +24,9 @@ private final class MagpieKeeper {
 
     init?() {
         guard let applicationURL = Self.containingApplicationURL(),
-              let bundle = Bundle(url: applicationURL),
-              let applicationBundleID = bundle.bundleIdentifier
+              let applicationBundleID = Self.applicationBundleIdentifier(
+                  applicationURL: applicationURL
+              )
         else {
             return nil
         }
@@ -170,17 +171,11 @@ private final class MagpieKeeper {
     }
 
     private static func containingApplicationURL() -> URL? {
-        let executableURL = Bundle.main.executableURL
-            ?? URL(fileURLWithPath: CommandLine.arguments[0])
+        let executableURL = resolvedExecutableURL()
         var candidate = executableURL.resolvingSymlinksInPath().deletingLastPathComponent()
 
         while candidate.path != "/" {
-            if candidate.pathExtension == "app",
-               FileManager.default.fileExists(
-                   atPath: candidate
-                       .appendingPathComponent("Contents/Info.plist")
-                       .path
-               ) {
+            if candidate.pathExtension == "app" {
                 return candidate
             }
             candidate.deleteLastPathComponent()
@@ -189,17 +184,63 @@ private final class MagpieKeeper {
         return nil
     }
 
+    private static func resolvedExecutableURL() -> URL {
+        // launchd may supply BundleProgram as a path relative to the parent
+        // app. `_NSGetExecutablePath` always returns the executable image's
+        // resolved filesystem path, independent of argv[0] and the working
+        // directory.
+        var bufferSize: UInt32 = 0
+        _NSGetExecutablePath(nil, &bufferSize)
+        var buffer = [CChar](repeating: 0, count: Int(bufferSize))
+        let result = buffer.withUnsafeMutableBufferPointer { pointer in
+            _NSGetExecutablePath(pointer.baseAddress, &bufferSize)
+        }
+
+        if result == 0 {
+            return URL(fileURLWithPath: String(cString: buffer))
+        }
+
+        return URL(fileURLWithPath: CommandLine.arguments[0])
+    }
+
+    private static func applicationBundleIdentifier(applicationURL: URL) -> String? {
+        // SMAppService launches the agent with XPC_SERVICE_NAME set to the
+        // launchd label. Magpie's label is always <app bundle ID>.keeper.
+        // This avoids reading the enclosing app's Info.plist, which the
+        // helper's deliberately narrow sandbox does not permit.
+        if let serviceName = ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"],
+           serviceName.hasSuffix(".keeper") {
+            return String(serviceName.dropLast(".keeper".count))
+        }
+
+        // Keep direct development runs useful when the helper is unsigned
+        // or otherwise not sandboxed.
+        return Bundle(url: applicationURL)?.bundleIdentifier
+    }
+
     private static func diagnosticDirectories(applicationBundleID: String) -> [URL] {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let relativeSupportPath = "Library/Application Support/Magpie"
-        return [
-            home
-                .appendingPathComponent("Library/Containers", isDirectory: true)
-                .appendingPathComponent(applicationBundleID, isDirectory: true)
-                .appendingPathComponent("Data", isDirectory: true)
-                .appendingPathComponent(relativeSupportPath, isDirectory: true),
-            home.appendingPathComponent(relativeSupportPath, isDirectory: true),
-        ]
+        KeeperDiagnosticDirectories.urls(
+            homeDirectory: realUserHomeDirectory(),
+            applicationBundleID: applicationBundleID
+        )
+    }
+
+    /// App Sandbox remaps Foundation's home-directory APIs into the
+    /// helper's container. launchd agents need the account's actual home
+    /// in order to read Magpie's session markers through their explicit
+    /// read-only sandbox exceptions.
+    private static func realUserHomeDirectory() -> URL {
+        guard let passwordEntry = getpwuid(getuid()),
+              let homePath = passwordEntry.pointee.pw_dir
+        else {
+            return FileManager.default.homeDirectoryForCurrentUser
+        }
+
+        return URL(
+            fileURLWithFileSystemRepresentation: homePath,
+            isDirectory: true,
+            relativeTo: nil
+        )
     }
 }
 

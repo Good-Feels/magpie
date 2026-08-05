@@ -5,6 +5,27 @@ public enum KeeperFileNames {
     public static let intentionalQuit = "intentional-quit.json"
 }
 
+public enum KeeperDiagnosticDirectories {
+    /// Returns the session-state location used by the sandboxed main app.
+    /// `homeDirectory` must be the user's real POSIX home, not App
+    /// Sandbox's remapped home directory.
+    public static func urls(
+        homeDirectory: URL,
+        applicationBundleID: String
+    ) -> [URL] {
+        return [
+            homeDirectory
+                .appendingPathComponent("Library/Containers", isDirectory: true)
+                .appendingPathComponent(applicationBundleID, isDirectory: true)
+                .appendingPathComponent("Data", isDirectory: true)
+                .appendingPathComponent(
+                    "Library/Application Support/Magpie",
+                    isDirectory: true
+                ),
+        ]
+    }
+}
+
 public struct KeeperSessionState: Codable, Equatable {
     public let id: UUID
     public let startedAt: Date

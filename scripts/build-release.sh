@@ -21,6 +21,8 @@ RW_DMG_PATH="$DIST_DIR/Magpie-rw.dmg"
 MOUNT_DIR="$DIST_DIR/.dmg-mount"
 INFO_PLIST="$PROJECT_DIR/Magpie/Info.plist"
 ENTITLEMENTS_FILE="$PROJECT_DIR/Magpie/Magpie.entitlements"
+KEEPER_INFO_PLIST="$PROJECT_DIR/MagpieKeeper/Info.plist"
+KEEPER_ENTITLEMENTS_FILE="$PROJECT_DIR/Support/MagpieKeeper.entitlements"
 ICON_SOURCE="$PROJECT_DIR/app-icon.png"
 ICON_ICNS="$PROJECT_DIR/Magpie/Resources/AppIcon.icns"
 ASSETS_CAR="$PROJECT_DIR/Magpie/Resources/Assets.car"
@@ -158,6 +160,21 @@ if [[ ! -f "$ENTITLEMENTS_FILE" ]]; then
     exit 1
 fi
 
+if [[ ! -f "$KEEPER_ENTITLEMENTS_FILE" ]]; then
+    echo "ERROR: Keeper entitlements file not found at $KEEPER_ENTITLEMENTS_FILE"
+    exit 1
+fi
+
+if [[ ! -f "$KEEPER_INFO_PLIST" ]] || ! plutil -lint "$KEEPER_INFO_PLIST" >/dev/null; then
+    echo "ERROR: Embedded keeper Info.plist is missing or invalid."
+    exit 1
+fi
+
+if ! plutil -lint "$KEEPER_ENTITLEMENTS_FILE" >/dev/null; then
+    echo "ERROR: Keeper entitlements file is invalid."
+    exit 1
+fi
+
 if [[ ! -f "$KEEPER_PLIST" ]]; then
     echo "ERROR: Keeper launch-agent plist not found at $KEEPER_PLIST"
     exit 1
@@ -195,6 +212,9 @@ mkdir -p "$DIST_DIR"
 
 RESOLVED_ENTITLEMENTS="$DIST_DIR/.resolved.entitlements"
 sed "s|\\\$(PRODUCT_BUNDLE_IDENTIFIER)|$BUNDLE_ID|g" "$ENTITLEMENTS_FILE" > "$RESOLVED_ENTITLEMENTS"
+RESOLVED_KEEPER_ENTITLEMENTS="$DIST_DIR/.resolved-keeper.entitlements"
+sed "s|\\\$(MAGPIE_APPLICATION_BUNDLE_IDENTIFIER)|$BUNDLE_ID|g" \
+    "$KEEPER_ENTITLEMENTS_FILE" > "$RESOLVED_KEEPER_ENTITLEMENTS"
 
 echo "==> Building release binary..."
 cd "$PROJECT_DIR"
@@ -265,6 +285,7 @@ if [[ -n "$SIGN_IDENTITY" ]]; then
     echo "==> Signing keeper launch agent..."
     codesign --force --options runtime --timestamp \
         --sign "$SIGN_IDENTITY" \
+        --entitlements "$RESOLVED_KEEPER_ENTITLEMENTS" \
         "$APP_BUNDLE/Contents/Library/LaunchServices/MagpieKeeper"
 
     echo "==> Signing app with: $SIGN_IDENTITY"
@@ -275,6 +296,21 @@ if [[ -n "$SIGN_IDENTITY" ]]; then
 
     echo "==> Verifying app signature..."
     codesign --verify --deep --strict "$APP_BUNDLE"
+    SIGNED_KEEPER_ENTITLEMENTS="$DIST_DIR/.signed-keeper.entitlements"
+    codesign --display --entitlements "$SIGNED_KEEPER_ENTITLEMENTS" --xml \
+        "$APP_BUNDLE/Contents/Library/LaunchServices/MagpieKeeper"
+    if [[ "$(/usr/libexec/PlistBuddy \
+        -c "Print :com.apple.security.app-sandbox" \
+        "$SIGNED_KEEPER_ENTITLEMENTS")" != "true" ]]; then
+        echo "ERROR: Signed keeper is missing the App Sandbox entitlement."
+        exit 1
+    fi
+    KEEPER_SIGNING_DETAILS="$(codesign -dvvv \
+        "$APP_BUNDLE/Contents/Library/LaunchServices/MagpieKeeper" 2>&1)"
+    if ! grep -Fq "Identifier=$BUNDLE_ID.keeper" <<<"$KEEPER_SIGNING_DETAILS"; then
+        echo "ERROR: Signed keeper is missing its embedded bundle identifier."
+        exit 1
+    fi
     SIGNING_DETAILS="$(codesign -dvvv "$APP_BUNDLE" 2>&1)"
     SIGNING_TIMESTAMP="$(sed -n 's/^Timestamp=//p' <<<"$SIGNING_DETAILS" | head -n 1)"
     if [[ -z "$SIGNING_TIMESTAMP" || "$SIGNING_TIMESTAMP" == "none" ]]; then
