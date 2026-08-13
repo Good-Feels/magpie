@@ -137,14 +137,14 @@ gh release create "$TAG" \
 
 ### 6. Post-release smoke test
 
-1. Install from released DMG on a non-dev path (`/Applications`).
-2. Launch once and ensure app opens without Gatekeeper warnings.
-3. Trigger `Check for Updates` from settings:
-   - expected: no signature/feed error.
-   - expected: reports up-to-date on fresh install of that tag.
-4. Test one real Sparkle hop from the prior installed version to the new version:
+1. Do not replace `/Applications/Magpie.app` manually. Leave the prior production version installed so it exercises the same automatic-update path as users.
+2. Trigger `Check for Updates` from settings in the installed prior version.
+3. Test the real Sparkle hop to the new version:
    - expected: download, extract, authorize, install, and relaunch all succeed.
    - if it fails after extraction or installer launch, inspect macOS logs for `Magpie`, `Installer`, and `org.sparkle-project.Sparkle`.
+4. After relaunch, trigger `Check for Updates` again:
+   - expected: no signature/feed error.
+   - expected: reports up-to-date on the newly installed version.
 5. With Launch at Login enabled, terminate the main Magpie process without clicking Quit:
    - expected: `MagpieKeeper` remains running and Magpie reopens within a few seconds.
 6. Click **Quit** in Magpie:

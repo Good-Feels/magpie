@@ -126,8 +126,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         } else if let settingsWindow, settingsWindow.isVisible {
             settingsWindow.makeKeyAndOrderFront(nil)
             sender.activate(ignoringOtherApps: true)
-        } else if !popover.isShown {
-            showPopover(trigger: "reopen")
+        } else {
+            // Recovery launches and duplicate LaunchServices requests can be
+            // delivered as reopens while Magpie is already running. Keep
+            // those silent; search remains available from the menu-bar item
+            // and global shortcut.
+            diagnostics.record("application_reopen_ignored reason=no_visible_window")
         }
         return true
     }
