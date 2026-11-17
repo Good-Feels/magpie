@@ -21,7 +21,17 @@ struct ClipboardHistoryView: View {
             Divider()
 
             // ── Clip List ───────────────────────────────────────────
-            if !appState.accessChecker.hasAccess {
+            if appState.databaseError != nil {
+                VStack(spacing: 12) {
+                    Image(systemName: "externaldrive.badge.exclamationmark")
+                        .font(.largeTitle)
+                    Text("Clipboard saving is paused").font(.headline)
+                    Text("Magpie could not open its history. Your saved history has been preserved. Quit and reopen Magpie to try again.")
+                        .font(.caption).foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if !appState.accessChecker.hasAccess {
                 ClipboardPermissionView(accessChecker: appState.accessChecker)
             } else if appState.displayedClips.isEmpty {
                 emptyState

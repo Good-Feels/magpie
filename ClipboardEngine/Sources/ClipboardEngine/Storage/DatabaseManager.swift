@@ -17,7 +17,7 @@ public final class DatabaseManager: Sendable {
 
     /// Creates the database at the standard Application Support location.
     /// Runs all pending migrations automatically.
-    public init() throws {
+    public convenience init() throws {
         let appSupportURL = try FileManager.default
             .url(
                 for: .applicationSupportDirectory,
@@ -27,6 +27,12 @@ public final class DatabaseManager: Sendable {
             )
             .appendingPathComponent("Magpie", isDirectory: true)
 
+        try self.init(directoryURL: appSupportURL)
+    }
+
+    /// The same production open/migration path with an explicit directory for
+    /// isolated tests. A failed open never resets or removes existing data.
+    public init(directoryURL appSupportURL: URL) throws {
         try FileManager.default.createDirectory(
             at: appSupportURL,
             withIntermediateDirectories: true
@@ -101,6 +107,12 @@ public final class DatabaseManager: Sendable {
                 on: "clipItems",
                 columns: ["isPinned", "createdAt"]
             )
+        }
+
+        migrator.registerMigration("v2_fileSelections") { db in
+            try db.alter(table: "clipItems") { table in
+                table.add(column: "contentFilePathsJSON", .text)
+            }
         }
 
         return migrator

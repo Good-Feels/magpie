@@ -1,0 +1,67 @@
+Building for debugging...
+[Pre-planning 151 / 155]
+[Planning deferred tasks]
+[5 / 15] GRDB
+[20 / 30] GRDB
+[26 / 36] ClipboardEngine
+[27 / 37] ClipboardEngine
+[31 / 39] GRDB
+[32 / 39] GRDB
+[44 / 52] ClipboardEngine
+[48 / 52] ClipboardEngineTests-product
+[51 / 55] ClipboardEngineTests-product
+[57 / 59] ClipboardEngineTests-product
+Build complete! (4.05 sec)
+Test Suite 'All tests' started at 2026-11-17 09:17:51.411.
+Test Suite 'ClipboardEngineTests.xctest' started at 2026-11-17 09:17:51.411.
+Test Suite 'ClipboardEngineTests' started at 2026-11-17 09:17:51.411.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testFullPayloadDedupPreservesFormattingAndContentType]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testFullPayloadDedupPreservesFormattingAndContentType]' passed (0.016 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG001CorruptDatabaseSurvivesRepeatedRealOpenFailures]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG001CorruptDatabaseSurvivesRepeatedRealOpenFailures]' passed (0.003 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG001ReopenPreservesPinnedHistoryAndPermissions]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG001ReopenPreservesPinnedHistoryAndPermissions]' passed (0.025 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG001StartupFailureBeforeSQLitePreservesDatabaseAndSidecars]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG001StartupFailureBeforeSQLitePreservesDatabaseAndSidecars]' passed (0.002 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002AllowedTextAndRichTextStillCaptureAndRestore]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002AllowedTextAndRichTextStillCaptureAndRestore]' passed (0.004 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002BriefExcludedAppBetweenPollsIsRemembered]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002BriefExcludedAppBetweenPollsIsRemembered]' passed (0.000 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002ConcealedMarkerOnLaterItemRejectsWholeSelection]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002ConcealedMarkerOnLaterItemRejectsWholeSelection]' passed (0.000 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002EverySensitiveMarkerRejectsAllRepresentations]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002EverySensitiveMarkerRejectsAllRepresentations]' passed (0.001 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002ExcludedSourceToEditorWithinPollingIntervalIsRejected]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002ExcludedSourceToEditorWithinPollingIntervalIsRejected]' passed (0.001 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002GenerationChangeDuringLazyPayloadIsRejected]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002GenerationChangeDuringLazyPayloadIsRejected]' passed (0.000 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002MonitorActivationNotificationsReachCaptureGate]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002MonitorActivationNotificationsReachCaptureGate]' passed (0.000 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002SourceHintCannotOverrideObservedExclusion]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG002SourceHintCannotOverrideObservedExclusion]' passed (0.000 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG003ExplicitUnlimitedAndFinitePreferencesAreRespected]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG003ExplicitUnlimitedAndFinitePreferencesAreRespected]' passed (0.015 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG003FreshInstallUses200AndPreservesPins]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG003FreshInstallUses200AndPreservesPins]' passed (0.043 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG003LegacyMissingPreferencePreservesAllHistoryAsUnlimited]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG003LegacyMissingPreferencePreservesAllHistoryAsUnlimited]' passed (0.020 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004ChangedSecondFileAndOrderAreNotDeduplicated]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004ChangedSecondFileAndOrderAreNotDeduplicated]' passed (0.006 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004InvalidPayloadDoesNotEraseDestination]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004InvalidPayloadDoesNotEraseDestination]' passed (0.001 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004LegacySingleFileAndMalformedGroupFallback]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004LegacySingleFileAndMalformedGroupFallback]' passed (0.002 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004TwoFilesPersistReopenAndRestoreInOrder]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004TwoFilesPersistReopenAndRestoreInOrder]' passed (0.008 seconds).
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004V1MigrationPreservesLegacyPinnedSingleFile]' started.
+Test Case '-[ClipboardEngineTests.ClipboardEngineTests testMAG004V1MigrationPreservesLegacyPinnedSingleFile]' passed (0.003 seconds).
+Test Suite 'ClipboardEngineTests' passed at 2026-11-17 09:17:51.564.
+	 Executed 20 tests, with 0 failures (0 unexpected) in 0.151 (0.152) seconds
+Test Suite 'ClipboardEngineTests.xctest' passed at 2026-11-17 09:17:51.564.
+	 Executed 20 tests, with 0 failures (0 unexpected) in 0.151 (0.152) seconds
+Test Suite 'All tests' passed at 2026-11-17 09:17:51.564.
+	 Executed 20 tests, with 0 failures (0 unexpected) in 0.151 (0.153) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2403
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.

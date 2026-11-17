@@ -1,4 +1,5 @@
 import SwiftUI
+import ClipboardEngine
 
 /// General tab in the preferences window.
 struct GeneralSettingsView: View {
@@ -8,7 +9,7 @@ struct GeneralSettingsView: View {
     @StateObject private var softwareUpdater = SoftwareUpdater()
     @ObservedObject private var analyticsService = AnalyticsService.shared
 
-    @AppStorage("maxHistorySize") private var maxHistorySize: Int = 200
+    @AppStorage(HistorySettings.key) private var maxHistorySize: Int = HistorySettings.defaultLimit
     @AppStorage("showSourceApp") private var showSourceApp: Bool = true
     @AppStorage("showTimestamps") private var showTimestamps: Bool = true
 
@@ -112,6 +113,7 @@ struct GeneralSettingsView: View {
     private var historySection: some View {
         sectionCard("History") {
             Picker("Keep", selection: $maxHistorySize) {
+                Text("Unlimited").tag(0)
                 ForEach(historyOptions, id: \.self) { count in
                     Text("\(count) clips").tag(count)
                 }

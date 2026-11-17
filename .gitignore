@@ -14,7 +14,6 @@ xcuserdata/
 # Swift Package Manager
 .build/
 Packages/
-Package.resolved
 *.xcodeproj
 
 # macOS
@@ -30,6 +29,7 @@ Package.resolved
 
 # Distribution artifacts
 dist/
+test-results/
 
 # Dev .app bundle binary (built by run.sh)
 Magpie.app/Contents/MacOS/

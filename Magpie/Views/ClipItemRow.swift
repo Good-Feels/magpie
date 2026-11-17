@@ -124,7 +124,7 @@ struct ClipItemRow: View {
                 Image(systemName: "doc")
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
-                Text(item.contentFilePath ?? item.previewText ?? "")
+                Text(item.filePaths.count > 1 ? (item.previewText ?? "\(item.filePaths.count) files") : (item.contentFilePath ?? item.previewText ?? ""))
                     .lineLimit(2)
                     .font(.system(size: 12))
                     .foregroundColor(.primary)

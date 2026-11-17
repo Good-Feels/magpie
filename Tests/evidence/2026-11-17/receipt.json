@@ -1,0 +1,48 @@
+{
+  "baseline_commit": "e1b86c3e894ca36db61bd640e8b5909232c38aef",
+  "version": "1.0.16",
+  "build": "17",
+  "source_state": "Applied reviewed patch to owning checkout; per-file source hashes match reviewed candidate; final committed revision is recorded in the portfolio release receipt.",
+  "result": "81 passed:52 app,9 keeper,20 engine",
+  "runner_sha256": "1f1fe1ff515b141f45eb2ed8b7111996677e9a7170b6b5a1f9481c0239259475",
+  "environment": {
+    "macos": "27.2",
+    "build": "26B123",
+    "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)\nTarget: arm64-apple-macosx27.2.0",
+    "architecture": "arm64"
+  },
+  "independent_review": "Independent source review accepted; independent engine rerun20/20 at2026-11-17T14:10:59Z. Final test additions strengthen startup-success and no-sensitive-payload-read assertions.",
+  "sparkle_artifact": {
+    "version": "2.9.0",
+    "official_url": "https://github.com/sparkle-project/Sparkle/releases/download/2.9.0/Sparkle-for-Swift-Package-Manager.zip",
+    "sha256": "44a0d5a00d5bfb6c2ad1755a92b694d948876d61ad44f35a0119eb0e7ace4b65",
+    "bytes": 11563950,
+    "cache_recovery": "Bounded curl fetched exact official archive; checksum matched pinnedmanifest and officialasset359979772. ScratchSwiftPMworkspace7artifactkind {xcframework:{}} and path to extracted Sparkle.xcframework seeded; no manifest/dependency override."
+  },
+  "dependency_choice": "Root original pins retained; nested engine lock normalized to actual GRDB7.10.0 only, dropping stale unused Sparkle row; no version upgrades.",
+  "limits": [
+    "Native component+integration coverage, not full GUI E2E or installed Sparkle upgrade.",
+    "Focus observations conservative; no authenticated attribution for unmarked/background writers.",
+    "No live clipboard/history/defaults/install/login-agent changes.",
+    "No release/tag/appcast publication.",
+    "SwiftPM root coverage export contained only KeeperRules.swift; do not interpret it as whole-app line coverage. Root52 app+9 keeper assertions passed; engine per-file coverage is separately saved."
+  ],
+  "fixture_corrections": [
+    "Record a new payload with nil rowID, matching production capture; copied persisted IDs are not new clips.",
+    "Reset/restore process-local volatile registration domain because UserDefaults registration is shared across named suites.",
+    "Use actual copy-generation clearContents before monitor test; invoke production poll callback deterministically rather than waiting on XCTest runloop.",
+    "Separate SQLite-managed corrupt-sidecar regeneration from application-level pre-open-error preservation.",
+    "Use fresh NSPasteboardItem objects rather than mutating an already published item."
+  ],
+  "owning_run": {
+    "finished_at": "2026-11-17T14:17:51.797603+00:00",
+    "root_tests": 61,
+    "engine_tests": 20,
+    "failures": 0,
+    "results": "owning-results.json",
+    "runner_sha256": "1f1fe1ff515b141f45eb2ed8b7111996677e9a7170b6b5a1f9481c0239259475",
+    "precommit_git_head": "e1b86c3e894ca36db61bd640e8b5909232c38aef",
+    "precommit_dirty": true
+  },
+  "log_sanitization": "Saved log copies have trailing whitespace removed; assertions, diagnostics and results retained."
+}

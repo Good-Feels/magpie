@@ -1,0 +1,524 @@
+{
+  "started_at": "2026-11-17T14:14:19.570825+00:00",
+  "runner_sha256": "1f1fe1ff515b141f45eb2ed8b7111996677e9a7170b6b5a1f9481c0239259475",
+  "source_files_sha256": {
+    "Magpie/App/AppDelegate.swift": "6cc0c8f6a642d8fa21733be91febb190de7dd8ce81d63fef4f2af424b724ee53",
+    "Magpie/App/AppState.swift": "628575e75d4e2b4866900c322e75a91b253b373860dbe9a7af0544f1065507d6",
+    "Magpie/App/MagpieApp.swift": "8915a82a7118d7f2ed24e8c4d8a1ac5fda76fe5041c608ec8722037854d13e2f",
+    "Magpie/Services/AnalyticsBuckets.swift": "36b4eb7b6c1e3de1d5fe8bf4c64974a4f93f56ce3cfc60625e9be0666a73f83a",
+    "Magpie/Services/AnalyticsService.swift": "e6ca5b3dd798e0019e584c9fd1137ab4b1c19e5d6dc5874cbf069deb99fa8068",
+    "Magpie/Services/ExclusionListManager.swift": "ee4099ccbfd69f20a3ed3c715986d2d307db24221caa880d9084f812018d74fd",
+    "Magpie/Services/LaunchAtLoginService.swift": "f7c5ed04ce879e003a0b3373f285e053930d91750386423c35a7e8938dde53b4",
+    "Magpie/Services/SoftwareUpdater.swift": "bb8bb82911d44c5fe049b3d15c23b7064fa7352c61bfd87eaff3cdf06afd9763",
+    "Magpie/Utilities/AppSessionDiagnostics.swift": "dac3f72971e98662a73eb2e88f69c479239f8c5d6a36c5bb0989fb3b22e52681",
+    "Magpie/Utilities/KeyboardLayoutResolver.swift": "695ef0618800ea3bece026ef68ba1ccaee215adb3439b4b16a37d4018bc34aad",
+    "Magpie/Utilities/KeyboardShortcutNames.swift": "af1d9491dcf7c5b10dce1e3b095ebdd1b6e695751ba3636c7f5561b4163f3f50",
+    "Magpie/Utilities/ReleaseGuards.swift": "eaa657f26f01edde530e727d7d958a069544849fbd1a5c272d882f3ea492fd7d",
+    "Magpie/Views/AboutView.swift": "a4ac81a58f215d2053d2f0cdcfd1075e241ed082a0766e2a520e1ba298ba9645",
+    "Magpie/Views/AppExclusionsView.swift": "63aeee95dfb11d24a7510fe82642299846b9add699fa11a09de300b76185426e",
+    "Magpie/Views/ClipItemRow.swift": "7762518fcea471b87a4d4d1df8257fbe6d84bd7f5976922464273d04a7125f8a",
+    "Magpie/Views/ClipboardHistoryView.swift": "e23319d4bbf5f4ced89100ace7c8df9b0158bc0bc412354088ad688d4df8b65b",
+    "Magpie/Views/ClipboardPermissionView.swift": "6f4d0a30badecca4c0e2b13cd98e9ca822574dd956fbdc1431600f131ea6cb8f",
+    "Magpie/Views/GeneralSettingsView.swift": "deb572cfe2405423eba4cb006b0c3d332c5c63cebcf65bfcd830c798a6f92816",
+    "Magpie/Views/OnboardingView.swift": "415f73ac27c98f610e65fc0b456c630a630aa383069b783136fd4d4b1085f545",
+    "Magpie/Views/PreferencesView.swift": "f815803491cef1dc395bf222819cac17e78445f2049d38915f6bf8fab7189821",
+    "Magpie/Views/SearchBar.swift": "195f27014f55f7bda84be7e32b5be68ace9309de392d63204051013bd781c9f5",
+    "Magpie/Views/ShortcutSettingsView.swift": "691278d76c29a5b1b6d7c0306e054e1c6136a07337af83636b65c9fc810c3a50",
+    "ClipboardEngine/Sources/ClipboardEngine/ClipboardEngine.swift": "3640954f85ca5f9785a3134e06d4aae8588412b878a31518d54b22d68cfe71c3",
+    "ClipboardEngine/Sources/ClipboardEngine/Models/ClipItem.swift": "78c609de3b01f0241e9195e8ac9b23b2db1f97825b7dd0b7f3f5166bff757fdd",
+    "ClipboardEngine/Sources/ClipboardEngine/Monitoring/AppResolver.swift": "a0ce30752ae3f2f588484fb654e6791d14e98eb31fbf99105c2421fcc35ee90d",
+    "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardAccessChecker.swift": "a3a50c06cef77a500cb8ac077b74fbbb62e5e4495c523b594389d904fe95239f",
+    "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardCapturePolicy.swift": "a53c711b138cb2674b862f9fb85c0895cf566e3160b91dc32554f72669bf3518",
+    "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardContent.swift": "d07335b4b0ad74636acfe9f5665de041e9bc315f854228b7555f91b7e5f5e567",
+    "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardMonitor.swift": "bf40a881857abeacb851ee39dea0121a64781212db4a9ab8d703e46da0d3c434",
+    "ClipboardEngine/Sources/ClipboardEngine/Storage/ClipItemRepository.swift": "b6e607e274e9c969eb491e1588155913bb371eac845d440991c9433f2d41bab8",
+    "ClipboardEngine/Sources/ClipboardEngine/Storage/DatabaseManager.swift": "7ded9adda99225311f817c8b1922e4fe10f09c9c3de2c49668c54ccc530de63f",
+    "ClipboardEngine/Sources/ClipboardEngine/Storage/DatabaseStartup.swift": "1cbd9420a93f4a0d4056e2f94cf68b7ac01a05dab59e7aed032a11204c2b2db9",
+    "ClipboardEngine/Sources/ClipboardEngine/Storage/HistorySettings.swift": "6e75cd361262c60459b09bb9917eec5d13f1e30a592eccf5ae413db4f03e421d",
+    "MagpieKeeper/main.swift": "7b3f589faed49612b4edacb60915fcbd6e1a041ccde66bc4a28780bb11826799",
+    "MagpieKeeperCore/KeeperRules.swift": "bb6f24f9233770529b73468b5116969c15065c5f4f34f359773be14341bc04dc",
+    "Tests/MagpieKeeperCoreTests/KeeperRulesTests.swift": "0b3d2b7bf91f354d478e6ba8169a17a65b2ab6742846422f837c2c7aba2d58d0",
+    "Tests/MagpieTests/RegressionGuardsTests.swift": "2cea6b40f29420d9f38d2ea4ee02f7a14fb593f88a64093572051090f9433872",
+    "ClipboardEngine/Tests/ClipboardEngineTests/ClipboardEngineTests.swift": "fdcd8c079eeb07f0415287df7faf000d3bcdf86005e2709ead68da4aeef7bb8a",
+    "ClipboardEngine/Package.resolved": "1dd406eff3096adfbfe1d4c380670342b24f9c5835a9993c36c6e4efedce8ac0",
+    "Package.resolved": "9f2f4e9164603e4bddfb0d28d3974c4d27746cceb4752a13f028c59c223ab0ba",
+    "ClipboardEngine/Package.swift": "5f05e8d111bcd32fbce27cc51bd3fe5fa1261ce275af85149accae2a4d9a5331",
+    "Package.swift": "ae2246c15d9522ebab984e81bc33ab08edbd8ff032af34c6c724a4382e0c73ef"
+  },
+  "info_plist_sha256": "81fb1e3834561b32fc6a7816f03a359b3a9cc90380622ad6697443308ec47339",
+  "git_head": "archive/unknown",
+  "git_dirty": null,
+  "environment": {
+    "macos": "27.2",
+    "build": "26B123",
+    "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)\nTarget: arm64-apple-macosx27.2.0",
+    "architecture": "arm64"
+  },
+  "app_version": "1.0.16",
+  "app_build": "17",
+  "suites": [
+    {
+      "name": "root",
+      "command": [
+        "swift",
+        "test",
+        "--package-path",
+        "/private/tmp/magpie-remediation-20261117/candidate",
+        "--disable-sandbox",
+        "--force-resolved-versions",
+        "--enable-code-coverage",
+        "--scratch-path",
+        "/private/tmp/magpie-remediation-20261117/build",
+        "--cache-path",
+        "/private/tmp/magpie-remediation-20261117/cache",
+        "--config-path",
+        "/private/tmp/magpie-remediation-20261117/build/config"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "product_coverage": [
+        {
+          "file": "MagpieKeeperCore/KeeperRules.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 5,
+              "covered": 5,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 5,
+              "covered": 5,
+              "percent": 100
+            },
+            "lines": {
+              "count": 47,
+              "covered": 47,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 16,
+              "covered": 16,
+              "notcovered": 0,
+              "percent": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "engine",
+      "command": [
+        "swift",
+        "test",
+        "--package-path",
+        "/private/tmp/magpie-remediation-20261117/candidate/ClipboardEngine",
+        "--disable-sandbox",
+        "--force-resolved-versions",
+        "--enable-code-coverage",
+        "--scratch-path",
+        "/private/tmp/magpie-remediation-20261117/engine-build",
+        "--cache-path",
+        "/private/tmp/magpie-remediation-20261117/cache",
+        "--config-path",
+        "/private/tmp/magpie-remediation-20261117/engine-build/config"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "product_coverage": [
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Models/ClipItem.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 6,
+              "covered": 6,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 6,
+              "covered": 6,
+              "percent": 100
+            },
+            "lines": {
+              "count": 28,
+              "covered": 28,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 8,
+              "covered": 8,
+              "notcovered": 0,
+              "percent": 100
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Monitoring/AppResolver.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 2,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 2,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 12,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 6,
+              "covered": 0,
+              "notcovered": 6,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardAccessChecker.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 18,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 18,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 92,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 39,
+              "covered": 0,
+              "notcovered": 39,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardCapturePolicy.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 8,
+              "covered": 7,
+              "percent": 87.5
+            },
+            "instantiations": {
+              "count": 8,
+              "covered": 7,
+              "percent": 87.5
+            },
+            "lines": {
+              "count": 18,
+              "covered": 17,
+              "percent": 94.44444444444444
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 9,
+              "covered": 8,
+              "notcovered": 1,
+              "percent": 88.88888888888889
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardContent.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 13,
+              "covered": 8,
+              "percent": 61.53846153846154
+            },
+            "instantiations": {
+              "count": 13,
+              "covered": 8,
+              "percent": 61.53846153846154
+            },
+            "lines": {
+              "count": 95,
+              "covered": 79,
+              "percent": 83.15789473684211
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 57,
+              "covered": 43,
+              "notcovered": 14,
+              "percent": 75.43859649122807
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Monitoring/ClipboardMonitor.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 12,
+              "covered": 8,
+              "percent": 66.66666666666666
+            },
+            "instantiations": {
+              "count": 12,
+              "covered": 8,
+              "percent": 66.66666666666666
+            },
+            "lines": {
+              "count": 83,
+              "covered": 69,
+              "percent": 83.13253012048193
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 18,
+              "covered": 11,
+              "notcovered": 7,
+              "percent": 61.111111111111114
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Storage/ClipItemRepository.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 26,
+              "covered": 14,
+              "percent": 53.84615384615385
+            },
+            "instantiations": {
+              "count": 26,
+              "covered": 14,
+              "percent": 53.84615384615385
+            },
+            "lines": {
+              "count": 135,
+              "covered": 69,
+              "percent": 51.11111111111111
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 60,
+              "covered": 35,
+              "notcovered": 25,
+              "percent": 58.333333333333336
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Storage/DatabaseManager.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 9,
+              "covered": 7,
+              "percent": 77.77777777777779
+            },
+            "instantiations": {
+              "count": 9,
+              "covered": 7,
+              "percent": 77.77777777777779
+            },
+            "lines": {
+              "count": 129,
+              "covered": 113,
+              "percent": 87.59689922480621
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 23,
+              "covered": 18,
+              "notcovered": 5,
+              "percent": 78.26086956521739
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Storage/DatabaseStartup.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 1,
+              "covered": 1,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 1,
+              "covered": 1,
+              "percent": 100
+            },
+            "lines": {
+              "count": 13,
+              "covered": 13,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 5,
+              "covered": 5,
+              "notcovered": 0,
+              "percent": 100
+            }
+          }
+        },
+        {
+          "file": "ClipboardEngine/Sources/ClipboardEngine/Storage/HistorySettings.swift",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 2,
+              "covered": 2,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 2,
+              "covered": 2,
+              "percent": 100
+            },
+            "lines": {
+              "count": 11,
+              "covered": 11,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 8,
+              "covered": 7,
+              "notcovered": 1,
+              "percent": 87.5
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "finished_at": "2026-11-17T14:14:25.884349+00:00"
+}

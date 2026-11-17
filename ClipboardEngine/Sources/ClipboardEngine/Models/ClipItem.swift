@@ -20,6 +20,19 @@ public struct ClipItem: Codable, Identifiable, Sendable, Hashable {
     /// File path string for file-reference clips (Phase 2).
     public var contentFilePath: String?
 
+    /// JSON-encoded ordered file selection. Nil on legacy single-file rows.
+    public var contentFilePathsJSON: String?
+
+    /// Uses a valid selection or falls back to the legacy first-file field.
+    public var filePaths: [String] {
+        if let json = contentFilePathsJSON, let data = json.data(using: .utf8),
+           let paths = try? JSONDecoder().decode([String].self, from: data),
+           !paths.isEmpty, paths.allSatisfy({ $0.hasPrefix("/") }) {
+            return paths
+        }
+        return contentFilePath.map { [$0] } ?? []
+    }
+
     /// Discriminator: "text", "richText", "image", "filePath".
     public var contentType: String
 
@@ -46,6 +59,7 @@ public struct ClipItem: Codable, Identifiable, Sendable, Hashable {
         contentRichData: Data? = nil,
         contentImageData: Data? = nil,
         contentFilePath: String? = nil,
+        contentFilePathsJSON: String? = nil,
         contentType: String = "text",
         sourceAppBundleID: String? = nil,
         sourceAppName: String? = nil,
@@ -58,6 +72,7 @@ public struct ClipItem: Codable, Identifiable, Sendable, Hashable {
         self.contentRichData = contentRichData
         self.contentImageData = contentImageData
         self.contentFilePath = contentFilePath
+        self.contentFilePathsJSON = contentFilePathsJSON
         self.contentType = contentType
         self.sourceAppBundleID = sourceAppBundleID
         self.sourceAppName = sourceAppName

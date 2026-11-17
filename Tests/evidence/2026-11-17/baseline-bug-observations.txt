@@ -1,0 +1,8 @@
+REPRODUCED MAG-002: concealed synthetic content reached capture sink (1 saved; expected 0)
+REPRODUCED MAG-002 exclusion boundary: excluded source is not checked once editor is frontmost
+REPRODUCED MAG-004: two file references input, only first captured
+REPRODUCED MAG-003: UI fallback 200, raw default 0; source saveClip retained 201 and never pruned
+[Magpie] Database init failed: transientOpenFailure. Attempting recovery...
+[Magpie] Database recovered successfully (history was reset).
+REPRODUCED MAG-001 failure-injection: one arbitrary initial DB error deleted all three synthetic history files
+{"appstate_sha256": "1ad64e11e0de688d50ffb2a1d59cbe3e4d125abf5266910468a207cf687a8d65", "method_injection": "Original capture/save/init/reset bodies; fake repositories/workspace; temp reset directory; isolated defaults/pasteboard"}

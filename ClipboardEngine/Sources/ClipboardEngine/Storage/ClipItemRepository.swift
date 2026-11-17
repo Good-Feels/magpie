@@ -87,17 +87,32 @@ public struct ClipItemRepository: Sendable {
 
     // MARK: - Deduplication
 
-    /// Returns `true` if the most recent clip has the same text content,
-    /// preventing consecutive duplicate entries.
-    public func isDuplicate(of text: String) throws -> Bool {
-        try dbPool.read { db in
-            let latestClip = try ClipItem
-                .order(ClipItem.Columns.createdAt.desc)
-                .limit(1)
-                .fetchOne(db)
+    /// Full payload identity: equal plain text must not discard different rich
+    /// formatting, images or a changed second file in a selection.
+    public func isDuplicate(of item: ClipItem) throws -> Bool {
+        try dbPool.read { db in try isDuplicate(item, in: db) }
+    }
 
-            return latestClip?.contentText == text
+    /// Deduplicate, insert and enforce the configured limit atomically.
+    /// Zero means unlimited; pinned rows are excluded from retention pruning.
+    @discardableResult
+    public func record(_ item: inout ClipItem, maxUnpinnedCount: Int) throws -> Bool {
+        try dbPool.write { db in
+            guard try !isDuplicate(item, in: db) else { return false }
+            try item.insert(db)
+            if maxUnpinnedCount > 0 { try prune(maxUnpinnedCount, in: db) }
+            return true
         }
+    }
+
+    private func isDuplicate(_ item: ClipItem, in db: Database) throws -> Bool {
+        guard let latest = try ClipItem.order(ClipItem.Columns.createdAt.desc, ClipItem.Columns.id.desc)
+            .limit(1).fetchOne(db) else { return false }
+        return latest.contentType == item.contentType
+            && latest.contentText == item.contentText
+            && latest.contentRichData == item.contentRichData
+            && latest.contentImageData == item.contentImageData
+            && latest.filePaths == item.filePaths
     }
 
     // MARK: - History Limit Enforcement
@@ -105,24 +120,17 @@ public struct ClipItemRepository: Sendable {
     /// Prunes the oldest unpinned clips so that the total unpinned count
     /// does not exceed `maxCount`.
     public func enforceHistoryLimit(_ maxCount: Int) throws {
-        try dbPool.write { db in
-            let unpinnedCount = try ClipItem
-                .filter(ClipItem.Columns.isPinned == false)
-                .fetchCount(db)
+        guard maxCount > 0 else { return }
+        try dbPool.write { db in try prune(maxCount, in: db) }
+    }
 
-            guard unpinnedCount > maxCount else { return }
-
-            let excess = unpinnedCount - maxCount
-            let oldestIDs = try ClipItem
-                .filter(ClipItem.Columns.isPinned == false)
-                .order(ClipItem.Columns.createdAt.asc)
-                .limit(excess)
-                .fetchAll(db)
-                .compactMap(\.id)
-
-            _ = try ClipItem
-                .filter(oldestIDs.contains(ClipItem.Columns.id))
-                .deleteAll(db)
-        }
+    private func prune(_ maxCount: Int, in db: Database) throws {
+        let unpinned = ClipItem.filter(ClipItem.Columns.isPinned == false)
+        let excess = try unpinned.fetchCount(db) - maxCount
+        guard excess > 0 else { return }
+        let oldestIDs = try unpinned
+            .order(ClipItem.Columns.createdAt.asc, ClipItem.Columns.id.asc)
+            .limit(excess).fetchAll(db).compactMap(\.id)
+        _ = try ClipItem.filter(oldestIDs.contains(ClipItem.Columns.id)).deleteAll(db)
     }
 }

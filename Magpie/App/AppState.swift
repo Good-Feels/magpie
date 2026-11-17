@@ -30,7 +30,7 @@ final class AppState: ObservableObject {
     var onOpenSettings: (() -> Void)?
 
     /// True when the database failed to initialise and the app is running
-    /// in a degraded mode (no persistence, monitoring still works for the session).
+    /// with saving paused. Existing history is never automatically reset.
     @Published var databaseError: String?
 
     // MARK: - Dependencies
@@ -51,45 +51,18 @@ final class AppState: ObservableObject {
         accessChecker = ClipboardAccessChecker()
         Self.migrateLegacyDatabaseIfNeeded()
 
-        do {
-            let dbManager = try DatabaseManager()
+        switch DatabaseStartup.open(defaults: .standard, makeDatabase: { try DatabaseManager() }) {
+        case .success(let dbManager):
             databaseManager = dbManager
             repository = ClipItemRepository(dbPool: dbManager.dbPool)
-        } catch {
-            // First failure — try to recover by resetting the database
-            print("[Magpie] Database init failed: \(error). Attempting recovery...")
-            do {
-                try Self.resetDatabaseFile()
-                let dbManager = try DatabaseManager()
-                databaseManager = dbManager
-                repository = ClipItemRepository(dbPool: dbManager.dbPool)
-                print("[Magpie] Database recovered successfully (history was reset).")
-            } catch {
-                // Recovery failed — run in degraded mode
-                print("[Magpie] Database recovery failed: \(error). Running without persistence.")
-                databaseManager = nil
-                repository = nil
-                databaseError = error.localizedDescription
-            }
+        case .failure(let error):
+            // Opening/migration/permissions errors do not prove that history is
+            // unrecoverable. Preserve all database/WAL files for a later retry.
+            print("[Magpie] Database unavailable; preserving history: \(error)")
+            databaseError = error.localizedDescription
         }
 
         loadClips()
-    }
-
-    /// Deletes the database file so it can be recreated fresh.
-    private static func resetDatabaseFile() throws {
-        let appSupportURL = try FileManager.default
-            .url(for: .applicationSupportDirectory, in: .userDomainMask,
-                 appropriateFor: nil, create: false)
-            .appendingPathComponent("Magpie", isDirectory: true)
-
-        let fm = FileManager.default
-        for suffix in ["clipboard.sqlite", "clipboard.sqlite-wal", "clipboard.sqlite-shm"] {
-            let path = appSupportURL.appendingPathComponent(suffix).path
-            if fm.fileExists(atPath: path) {
-                try fm.removeItem(atPath: path)
-            }
-        }
     }
 
     /// One-time migration for users moving from a non-sandbox build
@@ -143,9 +116,7 @@ final class AppState: ObservableObject {
 
     func startMonitoring() {
         monitor.start { [weak self] pasteboard in
-            Task { @MainActor in
-                self?.handleNewClip(from: pasteboard)
-            }
+            self?.handleNewClip(from: pasteboard)
         }
     }
 
@@ -156,147 +127,18 @@ final class AppState: ObservableObject {
     // MARK: - Clip Handling (rich content aware)
 
     private func handleNewClip(from pasteboard: NSPasteboard) {
-        // Check exclusion list
-        let frontmostApp = NSWorkspace.shared.frontmostApplication
-        if exclusionManager.isExcluded(frontmostApp?.bundleIdentifier) {
-            return
-        }
-
-        let types = pasteboard.types ?? []
-
-        // Determine content type with priority: image > file > richText > text
-        if types.contains(.png) || types.contains(.tiff) {
-            handleImageClip(from: pasteboard, frontmostApp: frontmostApp)
-        } else if types.contains(.fileURL) {
-            handleFileClip(from: pasteboard, frontmostApp: frontmostApp)
-        } else if types.contains(.rtf) {
-            handleRichTextClip(from: pasteboard, frontmostApp: frontmostApp)
-        } else if types.contains(.string) {
-            handleTextClip(from: pasteboard, frontmostApp: frontmostApp)
-        }
-    }
-
-    private func handleTextClip(
-        from pasteboard: NSPasteboard,
-        frontmostApp: NSRunningApplication?
-    ) {
-        guard let text = pasteboard.string(forType: .string),
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { return }
-
-        // Skip consecutive duplicates
-        if let isDup = try? repository?.isDuplicate(of: text), isDup { return }
-
-        var item = ClipItem(
-            contentText: text,
-            contentType: "text",
-            sourceAppBundleID: frontmostApp?.bundleIdentifier,
-            sourceAppName: frontmostApp?.localizedName,
-            createdAt: Date(),
-            previewText: String(text.prefix(200))
-        )
-
-        saveClip(&item)
-    }
-
-    private func handleRichTextClip(
-        from pasteboard: NSPasteboard,
-        frontmostApp: NSRunningApplication?
-    ) {
-        let rtfData = pasteboard.data(forType: .rtf)
-        let plainText = pasteboard.string(forType: .string)
-
-        guard rtfData != nil || plainText != nil else { return }
-
-        // Dedup on the plain text representation
-        if let text = plainText,
-           let isDup = try? repository?.isDuplicate(of: text), isDup {
-            return
-        }
-
-        var item = ClipItem(
-            contentText: plainText,
-            contentRichData: rtfData,
-            contentType: "richText",
-            sourceAppBundleID: frontmostApp?.bundleIdentifier,
-            sourceAppName: frontmostApp?.localizedName,
-            createdAt: Date(),
-            previewText: plainText.map { String($0.prefix(200)) }
-        )
-
-        saveClip(&item)
-    }
-
-    private func handleImageClip(
-        from pasteboard: NSPasteboard,
-        frontmostApp: NSRunningApplication?
-    ) {
-        // Try PNG first, fall back to TIFF
-        var imageData = pasteboard.data(forType: .png)
-        if imageData == nil, let tiffData = pasteboard.data(forType: .tiff) {
-            // Convert TIFF → PNG for consistent storage
-            if let bitmapRep = NSBitmapImageRep(data: tiffData) {
-                imageData = bitmapRep.representation(using: .png, properties: [:])
-            }
-        }
-
-        guard let data = imageData else { return }
-
-        // Also grab any text representation (e.g. image alt text)
-        let plainText = pasteboard.string(forType: .string)
-
-        var item = ClipItem(
-            contentText: plainText,
-            contentImageData: data,
-            contentType: "image",
-            sourceAppBundleID: frontmostApp?.bundleIdentifier,
-            sourceAppName: frontmostApp?.localizedName,
-            createdAt: Date(),
-            previewText: plainText.map { String($0.prefix(200)) } ?? "[Image]"
-        )
-
-        saveClip(&item)
-    }
-
-    private func handleFileClip(
-        from pasteboard: NSPasteboard,
-        frontmostApp: NSRunningApplication?
-    ) {
-        guard let urlString = pasteboard.string(forType: .fileURL),
-              let url = URL(string: urlString)
-        else { return }
-
-        let path = url.path
-        let fileName = url.lastPathComponent
-
-        // Dedup on the file path
-        if let isDup = try? repository?.isDuplicate(of: path), isDup { return }
-
-        var item = ClipItem(
-            contentText: path,
-            contentFilePath: path,
-            contentType: "filePath",
-            sourceAppBundleID: frontmostApp?.bundleIdentifier,
-            sourceAppName: frontmostApp?.localizedName,
-            createdAt: Date(),
-            previewText: fileName
-        )
-
-        saveClip(&item)
-    }
-
-    private func saveClip(_ item: inout ClipItem) {
-        guard let repository else { return }
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        guard var item = ClipboardContent.read(
+            from: pasteboard,
+            sourceBundleID: frontmost?.bundleIdentifier,
+            sourceAppName: frontmost?.localizedName,
+            observedSourceBundleIDs: monitor.sourceBundleIDsForCurrentChange,
+            excludedBundleIDs: exclusionManager.excludedBundleIDs
+        ), let repository else { return }
         do {
-            try repository.insert(&item)
-
-            // Enforce history limit if configured (0 = unlimited)
-            let maxSize = UserDefaults.standard.integer(forKey: "maxHistorySize")
-            if maxSize > 0 {
-                try repository.enforceHistoryLimit(maxSize)
+            if try repository.record(&item, maxUnpinnedCount: HistorySettings.limit(in: .standard)) {
+                loadClips()
             }
-
-            loadClips()
         } catch {
             print("[Magpie] Failed to save clip: \(error)")
         }
@@ -332,36 +174,7 @@ final class AppState: ObservableObject {
     /// triggers the "Copied!" animation, then dismisses the popover.
     func copyToClipboard(_ item: ClipItem) {
         let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-
-        switch item.contentType {
-        case "image":
-            if let imageData = item.contentImageData {
-                pasteboard.setData(imageData, forType: .png)
-            }
-            if let text = item.contentText {
-                pasteboard.setString(text, forType: .string)
-            }
-        case "richText":
-            if let rtfData = item.contentRichData {
-                pasteboard.setData(rtfData, forType: .rtf)
-            }
-            if let text = item.contentText {
-                pasteboard.setString(text, forType: .string)
-            }
-        case "filePath":
-            if let path = item.contentFilePath {
-                let url = URL(fileURLWithPath: path)
-                pasteboard.writeObjects([url as NSURL])
-            }
-            if let text = item.contentText {
-                pasteboard.setString(text, forType: .string)
-            }
-        default:
-            if let text = item.contentText {
-                pasteboard.setString(text, forType: .string)
-            }
-        }
+        guard ClipboardContent.restore(item, to: pasteboard) else { return }
 
         // Tell the monitor to ignore this change
         monitor.lastChangeCount = pasteboard.changeCount

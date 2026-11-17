@@ -1,0 +1,163 @@
+warning: 'candidate': Invalid Exclude '/private/tmp/magpie-remediation-20261117/candidate/Magpie/Resources': File not found.
+warning: 'candidate': Invalid Exclude '/private/tmp/magpie-remediation-20261117/candidate/Magpie/Resources': File not found.
+Building for debugging...
+[Provisioning 3 / 20]
+[1 / 2] MagpieKeeperCoreTests-product
+Build complete! (0.38 sec)
+Test Suite 'All tests' started at 2026-11-17 09:14:22.149.
+Test Suite 'MagpieTests.xctest' started at 2026-11-17 09:14:22.149.
+Test Suite 'RegressionGuardsTests' started at 2026-11-17 09:14:22.149.
+Test Case '-[MagpieTests.RegressionGuardsTests testAnalyticsQueryLengthBuckets]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testAnalyticsQueryLengthBuckets]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testAnalyticsResultCountBuckets]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testAnalyticsResultCountBuckets]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testAssetAvailabilityUsesHTTPStatus]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testAssetAvailabilityUsesHTTPStatus]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testBackfillCapturesEnabledItemWithNoStoredPreference]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testBackfillCapturesEnabledItemWithNoStoredPreference]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testBackfillSkippedWhenItemNotEnabled]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testBackfillSkippedWhenItemNotEnabled]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testBackfillSkippedWhenPreferenceAlreadyStored]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testBackfillSkippedWhenPreferenceAlreadyStored]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testDefaultShortcutTypesVOnCurrentLayout]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testDefaultShortcutTypesVOnCurrentLayout]' passed (0.029 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testDisableRemovesLegacyMainAppRegistrationWhenKeeperIsMissing]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testDisableRemovesLegacyMainAppRegistrationWhenKeeperIsMissing]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testDisableWinsEvenWhenUnregisterThrows]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testDisableWinsEvenWhenUnregisterThrows]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testDownloadFailureFindsNestedAssetURL]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testDownloadFailureFindsNestedAssetURL]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testDownloadFailureRecognizesSparkleDownloadError]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testDownloadFailureRecognizesSparkleDownloadError]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testExplicitReenableResetsRepairBudget]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testExplicitReenableResetsRepairBudget]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testFailedHealRemainsRetryable]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testFailedHealRemainsRetryable]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testFallbackPopoverAnchorSitsAtTopCenterOfScreen]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testFallbackPopoverAnchorSitsAtTopCenterOfScreen]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testHealBackfillsPreferenceForLegacyEnabledUser]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testHealBackfillsPreferenceForLegacyEnabledUser]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testHealDoesNothingWhenUserNeverOptedIn]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testHealDoesNothingWhenUserNeverOptedIn]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testHealMigratesLegacyMainAppRegistrationToKeeper]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testHealMigratesLegacyMainAppRegistrationToKeeper]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testHealRepairsDroppedRegistrationWhenUserOptedIn]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testHealRepairsDroppedRegistrationWhenUserOptedIn]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testHealRepairsOnlyOncePerEnvironment]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testHealRepairsOnlyOncePerEnvironment]' passed (0.001 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testHiddenStatusItemAlertHandlesClearedShortcut]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testHiddenStatusItemAlertHandlesClearedShortcut]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testHiddenStatusItemAlertRendersLiveShortcut]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testHiddenStatusItemAlertRendersLiveShortcut]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testKeyCodeLookupRoundTrips]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testKeyCodeLookupRoundTrips]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationRunsWhenTargetMissingAndLegacyExists]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationRunsWhenTargetMissingAndLegacyExists]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationSkippedWhenLegacyMissing]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationSkippedWhenLegacyMissing]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationSkippedWhenPathsMatch]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationSkippedWhenPathsMatch]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationSkippedWhenTargetAlreadyExists]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyMigrationSkippedWhenTargetAlreadyExists]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyShortcutMigratesOnlyWhenItIsTheStoredDefault]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLegacyShortcutMigratesOnlyWhenItIsTheStoredDefault]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairRespectsUserRemovalInSameEnvironment]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairRespectsUserRemovalInSameEnvironment]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairRunsWhenDesiredAndRegistrationDropped]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairRunsWhenDesiredAndRegistrationDropped]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairSkippedWhenAlreadyEnabledOrAwaitingApproval]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairSkippedWhenAlreadyEnabledOrAwaitingApproval]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairSkippedWhenUserNeverOptedIn]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testLoginItemRepairSkippedWhenUserNeverOptedIn]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testManualDownloadNotOfferedForNonSparkleErrors]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testManualDownloadNotOfferedForNonSparkleErrors]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testManualDownloadNotOfferedForRoutineAborts]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testManualDownloadNotOfferedForRoutineAborts]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testManualDownloadOfferedOnlyForUserInitiatedRealFailures]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testManualDownloadOfferedOnlyForUserInitiatedRealFailures]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testMissingAssetExplainsPublishingDelay]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testMissingAssetExplainsPublishingDelay]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testMoveActionHiddenWhenRunningFromApplications]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testMoveActionHiddenWhenRunningFromApplications]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testMoveActionShownWhenNotRunningFromApplications]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testMoveActionShownWhenNotRunningFromApplications]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testPreviousUncleanSessionIsReportedAsUnexpected]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testPreviousUncleanSessionIsReportedAsUnexpected]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testPublishedAssetFailureSuggestsWaiting]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testPublishedAssetFailureSuggestsWaiting]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testRefreshStatusPublishesExternalApproval]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testRefreshStatusPublishesExternalApproval]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testSetLoginItemPersistsChoiceOnSuccess]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testSetLoginItemPersistsChoiceOnSuccess]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testSetLoginItemRevertsAndDoesNotPersistOnFailure]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testSetLoginItemRevertsAndDoesNotPersistOnFailure]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutHelperCopyIsNoLongerTemporary]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutHelperCopyIsNoLongerTemporary]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutValidationAcceptsCommandShortcut]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutValidationAcceptsCommandShortcut]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutValidationRequiresCapture]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutValidationRequiresCapture]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutValidationRequiresModifierKey]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testShortcutValidationRequiresModifierKey]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testStartupStatusPassesThroughNormalStatus]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testStartupStatusPassesThroughNormalStatus]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testStartupStatusUsesFriendlyMessageForStaleNotFoundInApplications]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testStartupStatusUsesFriendlyMessageForStaleNotFoundInApplications]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testStatusItemEvictedWhenPushedOffAllScreens]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testStatusItemEvictedWhenPushedOffAllScreens]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testStatusItemNotEvictedWhenOnScreenEvenIfOccluded]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testStatusItemNotEvictedWhenOnScreenEvenIfOccluded]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testVersionTextFallsBackWhenMissing]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testVersionTextFallsBackWhenMissing]' passed (0.000 seconds).
+Test Case '-[MagpieTests.RegressionGuardsTests testVersionTextUsesBundleValues]' started.
+Test Case '-[MagpieTests.RegressionGuardsTests testVersionTextUsesBundleValues]' passed (0.000 seconds).
+Test Suite 'RegressionGuardsTests' passed at 2026-11-17 09:14:22.193.
+	 Executed 52 tests, with 0 failures (0 unexpected) in 0.040 (0.043) seconds
+Test Suite 'MagpieTests.xctest' passed at 2026-11-17 09:14:22.193.
+	 Executed 52 tests, with 0 failures (0 unexpected) in 0.040 (0.043) seconds
+Test Suite 'All tests' passed at 2026-11-17 09:14:22.193.
+	 Executed 52 tests, with 0 failures (0 unexpected) in 0.040 (0.044) seconds
+[Magpie] Launch at login: unregister failed, disabling anyway: boom
+[Magpie] Launch at login: repaired dropped registration
+[Magpie] Launch at login: repaired dropped registration
+[Magpie] Launch at login: repair failed: boom
+[Magpie] Launch at login: repaired dropped registration
+[Magpie] Launch at login: repaired dropped registration
+[Magpie] Launch at login: repaired dropped registration
+[Magpie] Launch at login: repaired dropped registration
+[Magpie] Launch at login error: boom
+Test Suite 'All tests' started at 2026-11-17 09:14:22.260.
+Test Suite 'MagpieKeeperCoreTests.xctest' started at 2026-11-17 09:14:22.261.
+Test Suite 'KeeperRulesTests' started at 2026-11-17 09:14:22.261.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testDiagnosticDirectoriesUseRealHomeForSandboxedState]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testDiagnosticDirectoriesUseRealHomeForSandboxedState]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testIntentionalQuitFromPriorLoginDoesNotSuppressRelaunch]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testIntentionalQuitFromPriorLoginDoesNotSuppressRelaunch]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testIntentionalQuitInCurrentLoginSessionIsRespected]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testIntentionalQuitInCurrentLoginSessionIsRespected]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testMissingStateRelaunchesImmediately]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testMissingStateRelaunchesImmediately]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testRecentCleanTerminationWaitsForUpdater]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testRecentCleanTerminationWaitsForUpdater]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testRetryDelayBacksOffAndCapsAtOneMinute]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testRetryDelayBacksOffAndCapsAtOneMinute]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testRunningApplicationNeverRelaunches]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testRunningApplicationNeverRelaunches]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testStaleCleanTerminationRelaunches]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testStaleCleanTerminationRelaunches]' passed (0.000 seconds).
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testUncleanExitRelaunchesImmediately]' started.
+Test Case '-[MagpieKeeperCoreTests.KeeperRulesTests testUncleanExitRelaunchesImmediately]' passed (0.000 seconds).
+Test Suite 'KeeperRulesTests' passed at 2026-11-17 09:14:22.262.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'MagpieKeeperCoreTests.xctest' passed at 2026-11-17 09:14:22.263.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'All tests' passed at 2026-11-17 09:14:22.263.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2403
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2403
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
