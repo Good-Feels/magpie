@@ -30,11 +30,35 @@ security find-identity -v -p codesigning
 
 Expected: `Developer ID Application: Good Feels Inc (HTPHAYLD9X)` appears.
 
-2. Confirm notary profile exists:
+2. Authenticate the existing notarization profile using the same logged-in local
+   user and default notarytool Keychain route used by the previous Magpie releases.
+   Do not infer availability from an exit status alone or suppress the response.
+   Do not force a classic login.keychain-db override unless that store was separately
+   verified: the notary profile may be in default Data Protection storage.
 
 ```bash
-xcrun notarytool history --keychain-profile "AC_NOTARY" >/dev/null
+python3 - <<'PY_NOTARY'
+import json
+import subprocess
+
+profile = "AC_NOTARY"
+try:
+    result = subprocess.run(
+        ["xcrun", "notarytool", "history", "--keychain-profile", profile,
+         "--output-format", "json"],
+        capture_output=True, text=True, timeout=55,
+    )
+    payload = json.loads(result.stdout)
+    if result.returncode != 0 or not isinstance(payload.get("history"), list):
+        raise ValueError("Not an authenticated history response")
+except (subprocess.TimeoutExpired, ValueError):
+    raise SystemExit("Existing notarization profile was not authenticated; inspect its verified local Keychain route before building.")
+print(f"Authenticated existing profile {profile}; {len(payload['history'])} prior submissions.")
+PY_NOTARY
 ```
+
+This check reads existing credentials; it does not create/store credentials. Keep
+account passwords, app-specific passwords and private-key material out of logs.
 
 3. Confirm Sparkle signing key exists in Keychain:
 
