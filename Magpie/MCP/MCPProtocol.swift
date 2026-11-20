@@ -112,6 +112,10 @@ enum MCPProtocol {
             return error(-32601, "Method not found", id: id)
         }
         if modern { result["resultType"] = "complete" }
+        if method == "server/discover" || (modern && method == "tools/list") {
+            result["ttlMs"] = 0
+            result["cacheScope"] = "private"
+        }
         return encode(["jsonrpc": "2.0", "id": id, "result": result])
     }
 

@@ -91,13 +91,27 @@ final class MCPSharingTests: XCTestCase {
             #"{"jsonrpc":"2.0","id":"modern","method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}"#,
             #"{"jsonrpc":"2.0","id":3,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2027-01-01"}}}"#,
             #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"delete_clip"}}"#,
+            #"{"jsonrpc":"2.0","id":5,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}"#,
+            #"{"jsonrpc":"2.0","id":6,"method":"tools/list"}"#,
         ], home: home)
-        XCTAssertEqual(replies.count, 4)
+        XCTAssertEqual(replies.count, 6)
         XCTAssertEqual((replies.first?["error"] as? [String: Any])?["code"] as? Int, -32700)
-        XCTAssertEqual(try result(replies, at: 1)["resultType"] as? String, "complete")
-        XCTAssertTrue((try result(replies, at: 1)["supportedVersions"] as? [String])?.contains("2026-07-28") == true)
+        let discovery = try result(replies, at: 1)
+        XCTAssertEqual(discovery["resultType"] as? String, "complete")
+        XCTAssertEqual(discovery["ttlMs"] as? Int, 0)
+        XCTAssertEqual(discovery["cacheScope"] as? String, "private")
+        XCTAssertTrue((discovery["supportedVersions"] as? [String])?.contains("2026-07-28") == true)
         XCTAssertEqual((replies.dropFirst(2).first?["error"] as? [String: Any])?["code"] as? Int, -32022)
-        XCTAssertEqual((replies.last?["error"] as? [String: Any])?["code"] as? Int, -32602)
+        XCTAssertEqual((replies.dropFirst(3).first?["error"] as? [String: Any])?["code"] as? Int, -32602)
+        let modernTools = try result(replies, at: 4)
+        let legacyTools = try result(replies, at: 5)
+        XCTAssertEqual(modernTools["resultType"] as? String, "complete")
+        XCTAssertEqual(modernTools["ttlMs"] as? Int, 0)
+        XCTAssertEqual(modernTools["cacheScope"] as? String, "private")
+        XCTAssertNil(legacyTools["ttlMs"])
+        XCTAssertNil(legacyTools["cacheScope"])
+        XCTAssertEqual((modernTools["tools"] as? [[String: Any]])?.count, 2)
+        XCTAssertEqual((legacyTools["tools"] as? [[String: Any]])?.count, 2)
     }
 
     private func call(_ tool: String, arguments: String = "{}") -> String {
