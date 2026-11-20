@@ -235,6 +235,10 @@ cp "$BUILD_DIR/MagpieKeeper" "$APP_BUNDLE/Contents/Library/LaunchServices/Magpie
 cp "$KEEPER_PLIST" "$APP_BUNDLE/Contents/Library/LaunchAgents/$KEEPER_PLIST_NAME"
 cp "$INFO_PLIST" "$APP_BUNDLE/Contents/Info.plist"
 cp "$ICON_ICNS" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+RELEASE_NOTES="$PROJECT_DIR/docs/releases/$VERSION.md"
+if [[ -f "$RELEASE_NOTES" ]]; then
+    cp "$RELEASE_NOTES" "$APP_BUNDLE/Contents/Resources/ReleaseNotes.md"
+fi
 if [[ -f "$ASSETS_CAR" ]]; then
     cp "$ASSETS_CAR" "$APP_BUNDLE/Contents/Resources/Assets.car"
 fi

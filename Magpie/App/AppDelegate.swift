@@ -20,6 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var popover: NSPopover!
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
+    private var updateNoticeWindow: NSWindow?
     private var fallbackAnchorWindow: NSWindow?
     private var eventMonitor: Any?
     private var persistenceActivity: NSObjectProtocol?
@@ -62,12 +63,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         migrateShortcutForKeyboardLayoutIfNeeded()
         registerGlobalShortcut()
 
+        let releaseNotes = Bundle.main.url(forResource: "ReleaseNotes", withExtension: "md")
+            .flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+        let updateNotice = UpdateNotice.forLaunch(
+            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+            onboardingComplete: hasCompletedOnboarding,
+            defaults: .standard,
+            releaseNotes: releaseNotes
+        )
+
         // Show onboarding on first launch.
         if !hasCompletedOnboarding {
             print("[Magpie] Launch: showing onboarding")
             showOnboarding()
         } else {
             print("[Magpie] Launch: onboarding skipped (already completed)")
+            if let updateNotice { showUpdateNotice(updateNotice) }
             warnIfStatusItemHidden()
         }
 
@@ -123,6 +134,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         if let onboardingWindow, onboardingWindow.isVisible {
             onboardingWindow.makeKeyAndOrderFront(nil)
+            sender.activate(ignoringOtherApps: true)
+        } else if let updateNoticeWindow, updateNoticeWindow.isVisible {
+            updateNoticeWindow.makeKeyAndOrderFront(nil)
             sender.activate(ignoringOtherApps: true)
         } else if let settingsWindow, settingsWindow.isVisible {
             settingsWindow.makeKeyAndOrderFront(nil)
@@ -544,10 +558,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         onboardingWindow = window
     }
 
+    // MARK: - Update Notice
+
+    private func showUpdateNotice(_ notice: UpdateNotice) {
+        let window = UpdateNoticeWindow.make(notice: notice) { [weak self] action in
+            switch action {
+            case .openMCPSettings:
+                self?.openSettings(tab: .mcp)
+            case .viewReleaseNotes:
+                NSWorkspace.shared.open(notice.releaseNotesURL)
+            }
+        }
+        updateNoticeWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     // MARK: - Settings Window
 
-    func openSettings() {
+    func openSettings(tab: PreferencesTab? = nil) {
         closePopover()
+        if let tab { appState.preferencesTab = tab }
 
         if let window = settingsWindow {
             window.makeKeyAndOrderFront(nil)

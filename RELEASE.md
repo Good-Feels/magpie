@@ -92,6 +92,8 @@ git status
    - `CFBundleShortVersionString` -> target release version (for example `1.0.1`)
    - `CFBundleVersion` -> increment build number (for example `2`)
 
+   - Write the release notes in `docs/releases/<version>.md`. Start with a short summary paragraph after the heading. The release build bundles the notes so the What’s New dialog can show that summary on the first launch after an update.
+
 3. Commit version bump:
 
 ```bash
@@ -165,10 +167,12 @@ gh release create "$TAG" \
 2. Trigger `Check for Updates` from settings in the installed prior version.
 3. Test the real Sparkle hop to the new version:
    - expected: download, extract, authorize, install, and relaunch all succeed.
+   - expected: the returning user’s first launch shows the What’s New dialog with the correct version and release summary.
    - if it fails after extraction or installer launch, inspect macOS logs for `Magpie`, `Installer`, and `org.sparkle-project.Sparkle`.
 4. After relaunch, trigger `Check for Updates` again:
    - expected: no signature/feed error.
    - expected: reports up-to-date on the newly installed version.
+   - on a second launch of the same version, the What’s New dialog stays closed.
 5. With Launch at Login enabled, terminate the main Magpie process without clicking Quit:
    - expected: `MagpieKeeper` remains running and Magpie reopens within a few seconds.
 6. Click **Quit** in Magpie:

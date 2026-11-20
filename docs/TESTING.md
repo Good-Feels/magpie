@@ -40,6 +40,7 @@ Preconditions: exact committed `Package.resolved` files, network or populated de
 | MAG-008-C | `scripts/test-mcp-clients.py prepare-connection-app`, Claude Desktop | The production connection button opens the installer. The installed extension starts and a new chat reads the proof from beyond the search preview. Deleting the clip makes it disappear from a new search. |
 | MAG-008-D | `scripts/test-mcp-clients.py verify-codex` | A fresh local Codex session runs the installed extension launcher, calls both tools, and returns the same proof. |
 | MAG-008-E | `scripts/test-mcp-clients.py verify-connection-stdio` | The packaged launcher retrieves the sample and honors deletion in a host whose JavaScript streams are separate from its native standard input and output. |
+| MAG-009 | `UpdateNoticeTests` | A returning user sees the MCP tip once. A fresh install uses onboarding, a later upgrade summarizes the bundled notes, and a downgrade does not replay a previously seen update. |
 
 The MCP tests use private temporary home directories, synthetic clips, and bounded subprocess and socket waits. Claude Desktop and ChatGPT account connections are separate from this regression runner.
 

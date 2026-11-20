@@ -14,6 +14,7 @@ final class AppState: ObservableObject {
     @Published private(set) var historyCount: Int?
     @Published private(set) var historyReadFailed = false
     @Published private(set) var isRefreshingHistory = false
+    @Published var preferencesTab: PreferencesTab = .general
 
     /// The current search query typed in the search bar.
     @Published var searchText: String = "" {
