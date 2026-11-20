@@ -9,7 +9,7 @@ private actor ClientFixture {
         self.directory = directory
         clips = Dictionary(uniqueKeysWithValues: ["claude", "chatgpt"].enumerated().map { index, client in
             let query = "magpie-\(client)-\(directory.lastPathComponent)"
-            let text = "\(query)\n" + String(repeating: "synthetic clipboard sample ", count: 12)
+            let text = "\(query)\n" + String(repeating: "synthetic clipboard sample\n", count: 320)
                 + "\nProof: \(UUID().uuidString)"
             return (client, MCPSharedClip(historyID: Int64(index + 1), text: text, createdAt: .now))
         })

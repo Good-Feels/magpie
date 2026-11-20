@@ -81,13 +81,13 @@ private enum MCPWire {
         pending: Data = Data(),
         completion: @escaping @Sendable (Data?) -> Void
     ) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 4096) { chunk, _, complete, error in
-            guard error == nil, let chunk else { completion(nil); return }
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 4096) { chunk, _, _, error in
+            guard error == nil, let chunk, !chunk.isEmpty else { completion(nil); return }
             var bytes = pending
             if let newline = chunk.firstIndex(of: 10) {
                 bytes.append(contentsOf: chunk[..<newline])
                 completion(bytes.count <= limit ? bytes : nil)
-            } else if !complete && bytes.count + chunk.count <= limit {
+            } else if bytes.count + chunk.count <= limit {
                 bytes.append(chunk)
                 receiveLine(on: connection, limit: limit, pending: bytes, completion: completion)
             } else {
@@ -143,9 +143,17 @@ final class MCPLocalServer {
     private func send(_ response: Data, to id: UUID) {
         queue.async { [weak self] in
             guard let self, let connection = self.connections[id] else { return }
-            connection.send(content: response + Data([10]), completion: .contentProcessed { [weak self] _ in
-                self?.close(id)
-            })
+            connection.send(
+                content: response + Data([10]),
+                contentContext: .finalMessage,
+                completion: .contentProcessed { [weak self] error in
+                    guard error == nil else { self?.close(id); return }
+                    // Leave the socket open for the peer to drain the reply and disconnect.
+                    connection.receive(minimumIncompleteLength: 1, maximumLength: 1) { [weak self] _, _, _, _ in
+                        self?.close(id)
+                    }
+                }
+            )
         }
     }
 

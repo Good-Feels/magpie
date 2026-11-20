@@ -1,16 +1,19 @@
 {
-  "revision": "03c1298ea8108d4531d3523e03091c2ab85fd4c8",
+  "revision": "4963d862c482834ff7a2bef7eeb7b4ae1ec5d712",
   "runner_sha256": "6816a552f65a0526517600b694e03e7ee01b9f89dff23ac1235294a5aaafc99a",
-  "fixture_sha256": "a329bd0f0b28f0d265861a75b2b1a58d5ef5ff61b4d4107f7ef27d2ade840a0b",
-  "bridge_sha256": "8aa0294d63d791e380add9effc4b10f38c4a2138f53dcc716bccbb67ec5ed51a",
+  "fixture_sha256": "dcb50b37c9eab93f71dd4dd16972fd07b34d6aae12a4428b15168bd27a6033c9",
+  "bridge_sha256": "3963d0b999ad7474fe946f8415220a4303a1c54660bfb56dbfababbfd769f5a5",
   "environment": "macOS-27.2-arm64-arm-64bit",
   "bridge": "/Users/jason/Development/CopyOfCopyClip/.build/mcp-regression-root/out/Products/Debug/Magpie",
-  "verified_at": "2026-11-20T13:43:47.626577+00:00",
+  "verified_at": "2026-11-20T13:46:56.547605+00:00",
   "target": "isolated synthetic fixture using the production MCP protocol, transport and built Magpie stdio bridge",
-  "tested_production_sources_sha256": {
-    "Magpie/MCP/MCPLocalTransport.swift": "a08f6db93127eeb3b1d1379ec0b0805f7b5b477c77d1e3c209ae503b44b2727a",
+  "app_version": "1.0.17",
+  "app_build": "18",
+  "tested_sources_sha256": {
+    "Magpie/MCP/MCPLocalTransport.swift": "015ec5a5258c11d0ab44f8fc41438269c4bc692686ba01faf5b0d5095bf8d3de",
     "Magpie/MCP/MCPProtocol.swift": "9661c58dbe2613ae11a8ceb6f353d2967fe0bed271a84988aca3c01abefaaea9",
-    "Magpie/MCP/MCPSharing.swift": "364088ab89c1b323ce69f7a1676481f1236fd4e07bc9c68ed4418fc0b6995804"
+    "Magpie/MCP/MCPSharing.swift": "364088ab89c1b323ce69f7a1676481f1236fd4e07bc9c68ed4418fc0b6995804",
+    "Tests/MagpieTests/MCPSharingTests.swift": "8f343aa799a83ea5575cee3ae06947e4f03dc51b419649affd1887842671fa81"
   },
   "scenarios": [
     {
@@ -37,5 +40,12 @@
       },
       "displayed_proof_line": true
     }
-  ]
+  ],
+  "regression_recovery": {
+    "failure": "The first release regression returned the fallback response during one multi-chunk clip fetch.",
+    "correction": "Read through the newline delimiter and let the peer drain the reply before closing the socket.",
+    "native_suite": "83 passed on macOS 27.2. One saved test exercised 12 consecutive large-clip reads.",
+    "repetition": "15 runs of the large-clip regression passed, for 180 full reads.",
+    "client_retest": "Both clients displayed a proof line from the end of a synthetic clip larger than 8 KiB and made a separate search after revocation."
+  }
 }

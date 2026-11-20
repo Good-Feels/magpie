@@ -11,7 +11,7 @@ final class MCPSharingTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: home) }
         let address = MCPSocketAddress(directory: home.appendingPathComponent(".magpie-mcp-dev"))
         let sharing = MCPSharing(address: address)
-        let text = "Synthetic magpie test 🪶\n" + String(repeating: "sample text ", count: 512)
+        let text = "Synthetic magpie test 🪶\n" + String(repeating: "sample text\n", count: 1_024)
         let shared = ClipItem(id: 101, contentText: text, isPinned: true)
         let unshared = ClipItem(id: 102, contentText: "synthetic unshared text")
         let file = ClipItem(id: 103, contentText: "synthetic file", contentType: "filePath")
@@ -53,9 +53,12 @@ final class MCPSharingTests: XCTestCase {
         XCTAssertTrue(try searchResults(try result(listing, at: 3)).isEmpty)
 
         let fetch = call("get_shared_clip", arguments: #"{"id":"\#(id)"}"#)
-        let contents = try await exchange([fetch, call("search_shared_clips")], home: home)
-        XCTAssertEqual(try responseText(try result(contents, at: 0)), text)
-        XCTAssertEqual(try searchResults(try result(contents, at: 1)).count, 1)
+        let fetchCount = 12
+        let contents = try await exchange(Array(repeating: fetch, count: fetchCount) + [call("search_shared_clips")], home: home)
+        for index in 0..<fetchCount {
+            XCTAssertTrue(try responseText(try result(contents, at: index)) == text, "Incomplete fetch at index \(index)")
+        }
+        XCTAssertEqual(try searchResults(try result(contents, at: fetchCount)).count, 1)
 
         sharing.toggle(shared)
         let revoked = try await exchange([fetch], home: home)
