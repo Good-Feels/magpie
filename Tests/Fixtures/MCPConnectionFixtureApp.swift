@@ -17,14 +17,35 @@ enum MCPConnectionFixtureEntry {
 }
 
 private struct MCPConnectionFixtureApp: App {
-    @StateObject private var sharing = MCPSharing()
+    @StateObject private var access: MCPHistoryAccess
+    @State private var fixtureID: Int64?
+    private let repository: ClipItemRepository
+
+    init() {
+        let temp = FileManager.default.temporaryDirectory
+        let database = try! DatabaseManager(directoryURL: temp.appendingPathComponent(UUID().uuidString))
+        let repository = ClipItemRepository(dbPool: database.dbPool)
+        self.repository = repository
+        _access = StateObject(wrappedValue: MCPHistoryAccess(repository: repository))
+        let proof = UUID().uuidString
+        let text = "magpie-button-fixture\n" + String(repeating: "synthetic clip\n", count: 60) + "Proof: \(proof)"
+        var clip = ClipItem(contentText: text, createdAt: Date(timeIntervalSince1970: 0))
+        try! repository.insert(&clip)
+        _fixtureID = State(initialValue: clip.id)
+        for index in 1...72 {
+            var newer = ClipItem(contentText: "Synthetic newer history clip \(index)",
+                                 createdAt: Date(timeIntervalSince1970: Double(index)))
+            try! repository.insert(&newer)
+        }
+        try! proof.write(to: temp.appendingPathComponent("magpie-fixture-proof.txt"), atomically: true, encoding: .utf8)
+    }
 
     var body: some Scene {
         WindowGroup("Magpie Connection QA") {
             VStack {
-                MCPSettingsView(sharing: sharing)
-                Button(sharing.contains(1) ? "Revoke Synthetic Clip" : "Share Synthetic Clip", action: toggleClip)
-                    .disabled(!sharing.isAvailable)
+                MCPSettingsView(history: access)
+                Button("Delete Synthetic Clip", action: deleteClip)
+                    .disabled(fixtureID == nil)
                     .padding(.bottom, 12)
             }
             .frame(width: 560, height: 590)
@@ -32,16 +53,9 @@ private struct MCPConnectionFixtureApp: App {
     }
 
     @MainActor
-    private func toggleClip() {
-        if sharing.contains(1) {
-            sharing.clear()
-            return
-        }
-        let query = "magpie-button-fixture"
-        let proof = UUID().uuidString
-        let text = query + "\n" + String(repeating: "synthetic clip\n", count: 60) + "Proof: \(proof)"
-        sharing.toggle(ClipItem(id: 1, contentText: text))
-        let cache = FileManager.default.temporaryDirectory.appendingPathComponent("magpie-fixture-proof.txt")
-        try? proof.write(to: cache, atomically: true, encoding: .utf8)
+    private func deleteClip() {
+        guard let fixtureID else { return }
+        try! repository.delete(id: fixtureID)
+        self.fixtureID = nil
     }
 }

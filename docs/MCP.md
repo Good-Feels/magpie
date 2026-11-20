@@ -1,14 +1,14 @@
 # Connect Magpie to an AI client
 
-MCP lets an assistant search and read the clips you choose to share. These steps require a Magpie build with an **MCP** tab in Settings. Keep Magpie running while you use the connector.
+MCP lets connected assistants search and read all clips in your Magpie history, including newly copied clips and clips older than the ones visible in the history window. Keep Magpie running while you use the connector.
 
-## Choose what to share
+## Allow access to clipboard history
 
-1. Open **Magpie → Settings → MCP** and turn on **Enable MCP sharing**.
-2. In Magpie’s history, right-click a text clip and select **Share with AI**. A link icon marks the shared clip.
-3. Right-click the clip and select **Stop Sharing with AI** to revoke that clip, or use **Stop Sharing All** in Settings. Deleting a clip or aging it out of history also revokes it. Turning MCP sharing off or quitting Magpie clears the shared selection.
+Open **Magpie → Settings → MCP** and turn on **Allow access to clipboard history**. Access starts off and Magpie remembers your choice across launches. Turn it off to block future reads. Deleting a clip or aging it out of history also removes it from MCP results.
 
-Magpie starts with sharing off. You can share up to 50 clips at a time. Each clip must have a plain-text representation of at most 16 KiB. The tools can search and read that text. The listening socket is private to your macOS user and there is no public network listener. When an AI client reads a clip, its provider may receive the text. Revoking access stops future reads from Magpie. Any text already sent remains subject to the client’s data and retention settings.
+Search returns up to 20 previews per page. The tools return plain text from text and rich-text clips, images sized for the response, and saved paths from file clips. Long text can be read across multiple requests. File clips store references to files. The connector reads those saved references.
+
+The local connection is private to your macOS user. When an assistant reads a clip, its provider may receive that clip. Previously retrieved clips remain subject to the client’s data and retention settings. [Setup guide for Magpie 1.0.19](https://github.com/Good-Feels/magpie/blob/v1.0.19/docs/MCP.md)
 
 ## Claude Desktop for macOS
 
@@ -38,7 +38,7 @@ Claude’s web and Cowork remote connectors require an Anthropic-reachable HTTPS
 
 ## ChatGPT via Secure MCP Tunnel
 
-ChatGPT reaches Magpie through an outbound-only OpenAI Secure MCP Tunnel. You need access to custom MCP servers in your ChatGPT account and the required tunnel permissions in your OpenAI Platform organization. Keep the resulting plugin private to your account because this tunnel connects ChatGPT to your Mac’s shared clips. [OpenAI tunnel permissions and setup](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels#permissions-and-access)
+ChatGPT reaches Magpie through an outbound-only OpenAI Secure MCP Tunnel. You need access to custom MCP servers in your ChatGPT account and the required tunnel permissions in your OpenAI Platform organization. Keep the resulting plugin private to your account because this tunnel connects ChatGPT to your Magpie clipboard history. [OpenAI tunnel permissions and setup](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels#permissions-and-access)
 
 In **Magpie → Settings → MCP**, click **Connect to ChatGPT** and copy the setup prompt. Paste it into a local Codex chat on the same Mac. Codex guides you through setting up the private tunnel, approving the ChatGPT plugin, and testing a clip.
 
@@ -76,10 +76,10 @@ Open a new local session and use `/mcp` to check the connection. Other local std
 
 [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp) · [Codex MCP documentation](https://developers.openai.com/codex/mcp)
 
-## Try a shared clip
+## Try a sample clip
 
-1. Copy and share a harmless phrase such as `Magpie setup test 842`.
-2. Ask your client: “Use Magpie to search my shared clips for ‘setup test 842’ and read the matching clip.”
-3. Stop sharing the clip. In a fresh chat, ask the client to search again. The tool should return zero matches. A previous chat can still contain the earlier result.
+1. With history access enabled, copy a harmless phrase such as `Magpie setup test 842`.
+2. Ask your client “Use Magpie to search for ‘setup test 842’ and read the matching clip.”
+3. Delete the sample from Magpie. In a fresh chat, ask the client to search again. The tool should return zero matches. You can also turn off history access and confirm the client reports access is disabled.
 
-If a client lists the tools but reports that sharing is unavailable, launch Magpie and check for **Ready** in **Settings → MCP**. Use the executable path from that same build. For ChatGPT, also check that your tunnel is running and associated with the workspace where you added the plugin.
+If a client reports history access is unavailable, launch Magpie and check for **Ready** in **Settings → MCP**. Use the executable path from that same build. For ChatGPT, also check that your tunnel is running and associated with the workspace where you added the plugin.

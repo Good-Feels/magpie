@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct MCPSettingsView: View {
-    @ObservedObject var sharing: MCPSharing
+    @ObservedObject var history: MCPHistoryAccess
 
     @State private var preparingClaudeExtension = false
     @State private var claudeStatus: String?
@@ -15,27 +15,19 @@ struct MCPSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Clipboard sharing") {
-                Toggle("Enable MCP sharing", isOn: Binding(
-                    get: { sharing.isEnabled },
-                    set: sharing.setEnabled
+            Section("Clipboard history access") {
+                Toggle("Allow access to clipboard history", isOn: Binding(
+                    get: { history.isEnabled },
+                    set: history.setEnabled
                 ))
-                Text("Right-click a text clip in Magpie and choose Share with AI. Connected assistants can send shared text to their provider. Turning sharing off or quitting Magpie clears the selection.")
+                Text("Connected assistants can read all clips in your Magpie history, including new clips. They may send clips to their provider. Turn this off to block access.")
                     .foregroundStyle(.secondary)
-                if case .failed(let message) = sharing.status {
-                    Text("Couldn’t start MCP sharing. \(message)")
-                        .foregroundStyle(.red)
-                } else if sharing.isEnabled {
-                    LabeledContent("Status", value: sharing.isAvailable ? "Ready" : "Starting…")
-                }
-                if sharing.isAvailable {
-                    LabeledContent("Shared clips") {
-                        HStack {
-                            Text("\(sharing.clips.count) of \(MCPSharing.clipLimit)")
-                                .foregroundStyle(.secondary)
-                            Button("Stop Sharing All", action: sharing.clear)
-                                .disabled(sharing.clips.isEmpty)
-                        }
+                if history.isEnabled {
+                    if case .failed(let message) = history.status {
+                        Text("Couldn’t start clipboard history access. \(message)")
+                            .foregroundStyle(.red)
+                    } else {
+                        LabeledContent("Status", value: history.isAvailable ? "Ready" : "Starting…")
                     }
                 }
             }

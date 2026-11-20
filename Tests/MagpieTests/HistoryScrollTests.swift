@@ -29,9 +29,7 @@ final class HistoryScrollTests: XCTestCase {
 
         let state = AppState(database: .success(database))
         _ = NSApplication.shared
-        let controller = NSHostingController(rootView: ClipHistoryList()
-            .environmentObject(state)
-            .environmentObject(state.mcpSharing))
+        let controller = NSHostingController(rootView: ClipHistoryList().environmentObject(state))
         let window = NSWindow(contentViewController: controller)
         window.isReleasedWhenClosed = false
         window.setContentSize(NSSize(width: 360, height: 450))

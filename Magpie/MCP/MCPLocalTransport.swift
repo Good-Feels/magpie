@@ -175,7 +175,7 @@ enum MCPStdioBridge {
             }
             let request = Data(buffer.prefix(length - 1).map { UInt8(bitPattern: $0) })
             let response = exchange(request, address: address, queue: transportQueue)
-                ?? MCPProtocol.respond(to: request, clips: nil)
+                ?? MCPProtocol.respond(to: request)
             if let response, !response.isEmpty {
                 do {
                     try FileHandle.standardOutput.write(contentsOf: response + Data([10]))

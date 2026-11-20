@@ -1,0 +1,49 @@
+{
+  "base_revision": "011b828bc622e8905b8973e10647afd1665931f7",
+  "target": "Local full-history working tree on macOS 27.2 arm64",
+  "runner_sha256": "aefad92877545c1105f5d96719bd06313186fc3218af0d995d5f7bedd18d0b62",
+  "codex_run_runner_sha256": "4b6ac12b1217f9baa2c515c368c47dd2c64bf74dcb0137ca62651c2e33297d55",
+  "app_fixture_sha256": "212ea67bb628a1b3c20d4a0ae529b55d4b4a4faf37cb6dd52d7a7ec40c4369da",
+  "client_fixture_sha256": "ce7aae3178c9bc25dfa49de9988ffbc90c907954f5056ef908ba5a198c1ee651",
+  "mcp_protocol_sha256": "a1abcbdda1cc8e29228aba90b8ee4925af265e3364eb372a18ac9aa4be9e35e0",
+  "repository_sha256": "b1931c189e62e9c3b2a6b62fcc48a420ef2eb28bc15cdb68e7a9a33418e9b7db",
+  "scenarios": [
+    {
+      "id": "MAG-006-A/B and complete native regression suites",
+      "run": "20261120T204757Z",
+      "result": "passed",
+      "tests": 88
+    },
+    {
+      "id": "MAG-008-D",
+      "client": "Codex CLI 0.170.0",
+      "target": "Direct stdio to the sandboxed Magpie Connection QA app via verify-codex --bridge",
+      "result": "passed",
+      "observed": "The switch started off and reached Ready when enabled. A fresh Codex session ran both tools and returned the exact proof for entry 73. The same search was rejected by the production bridge after the switch was turned off."
+    },
+    {
+      "id": "MAG-006-C/D fixture checks",
+      "client": "Magpie --mcp-stdio with the executable synthetic client fixture and no cloud account",
+      "result": "passed",
+      "observed": "For both fixture identities, search and fetch worked before deletion. Search returned no matches and fetch denied the old ID after deletion."
+    },
+    {
+      "id": "MAG-006-C",
+      "client": "Claude Desktop 6.6395.1, regular chat, Haiku 5.5",
+      "result": "passed",
+      "observed": "An isolated stdio entry loaded via Reload MCP Configuration. The regular desktop chat used search_clips and get_clip and displayed the matching proof for entry 73. After disabling history access, a fresh chat received Magpie’s access-disabled error from the same server."
+    },
+    {
+      "id": "MAG-006-D",
+      "client": "ChatGPT in Google Chrome 157.0.8103.79 with OpenAI tunnel-client 0.0.21",
+      "result": "passed",
+      "observed": "Reused the dedicated private QA plugin and tunnel with the 73-entry sandboxed fixture. ChatGPT returned the matching proof, which appears only in the full clip. A fresh chat called the connector after access was turned off and displayed isError true with Magpie’s access-disabled message."
+    }
+  ],
+  "release_candidate": {
+    "version": "1.0.20 (21)",
+    "dmg_sha256": "29976e0c97bbfd75e3c1ae8b8d40c6859f80b2d28e7d4d1a5cab2cdb027c5c9f",
+    "notarization_submission": "ed02c5cd-ffae-464f-a92a-3d39b0ebc152",
+    "developer_id_gatekeeper_and_sparkle": "passed"
+  }
+}

@@ -9,11 +9,9 @@ import ClipboardEngine
 struct ClipItemRow: View {
     let item: ClipHistoryEntry
     let showCopied: Bool
-    let isShared: Bool
     let onSelect: () -> Void
     let onDelete: () -> Void
     let onTogglePin: () -> Void
-    let onToggleSharing: (() -> Void)?
     let loadThumbnail: () async -> CGImage?
 
     @AppStorage("showSourceApp") private var showSourceApp: Bool = true
@@ -42,9 +40,6 @@ struct ClipItemRow: View {
         .contextMenu {
             Button(item.isPinned ? "Unpin" : "Pin") {
                 onTogglePin()
-            }
-            if let onToggleSharing {
-                Button(isShared ? "Stop Sharing with AI" : "Share with AI", action: onToggleSharing)
             }
             Divider()
             Button("Delete", role: .destructive) {
@@ -103,12 +98,6 @@ struct ClipItemRow: View {
                             .foregroundColor(.orange)
                     }
 
-                    if isShared {
-                        Image(systemName: "link")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel("Shared with AI")
-                    }
                 }
             }
 

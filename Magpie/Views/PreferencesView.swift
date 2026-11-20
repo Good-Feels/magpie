@@ -20,7 +20,7 @@ struct PreferencesView: View {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
 
-            MCPSettingsView(sharing: appState.mcpSharing)
+            MCPSettingsView(history: appState.mcpHistory)
                 .tabItem {
                     Label("MCP", systemImage: "link")
                 }

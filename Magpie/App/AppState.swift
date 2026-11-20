@@ -49,7 +49,7 @@ final class AppState: ObservableObject {
     private(set) lazy var monitor = ClipboardMonitor(pollInterval: 0.5)
     let exclusionManager = ExclusionListManager()
     private(set) lazy var accessChecker = ClipboardAccessChecker()
-    let mcpSharing = MCPSharing()
+    let mcpHistory: MCPHistoryAccess
     private static let historyPageSize = 60
     private var historyTask: Task<Void, Never>?
     private var isHistoryOpen = false
@@ -67,16 +67,20 @@ final class AppState: ObservableObject {
     }
 
     init(database: Result<DatabaseManager, Error>) {
+        let historyRepository: ClipItemRepository?
         switch database {
         case .success(let dbManager):
             databaseManager = dbManager
-            repository = ClipItemRepository(dbPool: dbManager.dbPool)
+            historyRepository = ClipItemRepository(dbPool: dbManager.dbPool)
         case .failure(let error):
             // Opening/migration/permissions errors do not prove that history is
             // unrecoverable. Preserve all database/WAL files for a later retry.
             print("[Magpie] Database unavailable; preserving history: \(error)")
             databaseError = error.localizedDescription
+            historyRepository = nil
         }
+        repository = historyRepository
+        mcpHistory = MCPHistoryAccess(repository: historyRepository)
     }
 
     /// One-time migration for users moving from a non-sandbox build
@@ -197,10 +201,6 @@ final class AppState: ObservableObject {
     }
 
     private func historyDidChange() {
-        let sharedIDs = mcpSharing.clips.map(\.historyID)
-        if !sharedIDs.isEmpty {
-            mcpSharing.retainClips(withIDs: (try? repository?.existingIDs(sharedIDs)) ?? [])
-        }
         if isHistoryOpen { requestHistoryPage() }
     }
 
@@ -264,11 +264,6 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - Actions
-
-    func toggleMCPSharing(for id: Int64) {
-        guard let item = try? repository?.fetch(id: id) else { return }
-        mcpSharing.toggle(item)
-    }
 
     /// Copies the given clip's content back to the system clipboard,
     /// triggers the "Copied!" animation, then dismisses the popover.

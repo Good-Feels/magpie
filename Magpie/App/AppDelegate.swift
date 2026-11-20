@@ -48,6 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         setupEventMonitor()
         setupAccessStateMonitoring()
         setupRecoveryMonitoring()
+        appState.mcpHistory.restorePreference()
 
         // Give AppState callbacks for dismiss and settings
         appState.onDismiss = { [weak self] in
@@ -87,7 +88,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        appState.mcpSharing.setEnabled(false)
         appState.stopMonitoring()
         analytics.flush()
         diagnosticHeartbeatTimer?.invalidate()
@@ -256,7 +256,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let contentView = ClipboardHistoryView()
             .environmentObject(appState)
             .environmentObject(appState.exclusionManager)
-            .environmentObject(appState.mcpSharing)
 
         popover.contentViewController = NSHostingController(rootView: contentView)
         popover.delegate = self

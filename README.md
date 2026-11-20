@@ -54,7 +54,7 @@ You have something important on your clipboard. Now you need to copy something e
 - **Lightweight** — Lives in your menu bar, uses SQLite, under 2MB
 - **Auto-updates** — Direct downloads update automatically via Sparkle
 - **Private** — Clipboard history is stored on your Mac. Optional anonymous usage metrics, no Magpie account
-- **MCP sharing** — Share individual text clips with Claude Desktop, ChatGPT, and other MCP clients
+- **MCP clipboard history** — Let Claude Desktop, ChatGPT, and other MCP clients search and read your clipboard history
 
 ## Install
 
@@ -95,7 +95,7 @@ Choose **Settings → General → History → Unlimited** to keep more than 1,00
 
 ## Connect an AI Client
 
-Enable sharing in **Magpie → Settings → MCP**, then right-click the text clips you want an assistant to read. See the [MCP setup guide](docs/MCP.md) for Claude Desktop, ChatGPT via OpenAI Secure MCP Tunnel, Claude Code, and Codex.
+Turn on **Allow access to clipboard history** in **Magpie → Settings → MCP**. Connected assistants can then search and read clips across your history, including new clips. See the [MCP setup guide](docs/MCP.md) for Claude Desktop, ChatGPT via OpenAI Secure MCP Tunnel, Claude Code, and Codex.
 
 ## Tech Stack
 

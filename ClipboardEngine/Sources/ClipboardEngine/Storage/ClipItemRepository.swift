@@ -58,19 +58,36 @@ public struct ClipItemRepository: Sendable {
                     arguments: [cursor.isPinned, cursor.sortTimestamp, cursor.id]
                 )
             }
-            let entries = try page.select(sql: """
-                id, contentType, sourceAppBundleID, sourceAppName, isPinned, createdAt,
-                contentFilePath, contentFilePathsJSON,
-                substr(coalesce(previewText, contentText), 1, 500) AS previewText,
-                length(contentText) AS textLength,
-                length(CAST(contentText AS BLOB)) AS textByteCount,
-                length(contentImageData) AS imageByteCount
-                """, as: ClipHistoryEntry.self)
-                .limit(limit)
-                .fetchAll(db)
+            let entries = try previews(page).limit(limit).fetchAll(db)
             let total = cursor == nil ? try matches.fetchCount(db) : nil
             return (entries, total)
         }
+    }
+
+    /// Reads bounded previews for an assistant without materializing clip payloads or counting every match.
+    public func searchHistoryPreviews(query: String, offset: Int, limit: Int) throws -> [ClipHistoryEntry] {
+        try dbPool.read { db in
+            let all = ClipItem.all()
+            let term = query.localizedLowercase
+            let request = query.isEmpty ? all : all.filter(sql: """
+                instr(swiftLocalizedLowercaseString(contentText), ?) > 0
+                OR instr(swiftLocalizedLowercaseString(previewText), ?) > 0
+                OR instr(swiftLocalizedLowercaseString(contentFilePath), ?) > 0
+                OR instr(swiftLocalizedLowercaseString(contentFilePathsJSON), ?) > 0
+                """, arguments: [term, term, term, term])
+            return try previews(orderedHistory(request)).limit(limit, offset: offset).fetchAll(db)
+        }
+    }
+
+    private func previews(_ request: QueryInterfaceRequest<ClipItem>) -> QueryInterfaceRequest<ClipHistoryEntry> {
+        request.select(sql: """
+            id, contentType, sourceAppBundleID, sourceAppName, isPinned, createdAt,
+            contentFilePath, contentFilePathsJSON,
+            substr(coalesce(previewText, contentText), 1, 500) AS previewText,
+            length(contentText) AS textLength,
+            length(CAST(contentText AS BLOB)) AS textByteCount,
+            length(contentImageData) AS imageByteCount
+            """, as: ClipHistoryEntry.self)
     }
 
     public func fetch(id: Int64) throws -> ClipItem? {

@@ -17,6 +17,7 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+REGRESSION_SCRATCH = ROOT / ".build/regression-root"
 CLAUDE_CONFIG = Path.home() / "Library/Application Support/Claude/claude_desktop_config.json"
 CLIENTS = ("claude", "chatgpt")
 CONNECTION_QUERY = "magpie-button-fixture"
@@ -28,22 +29,23 @@ def fixture_env(directory):
                 LLVM_PROFILE_FILE=str(directory / "magpie-%p.profraw"))
 
 
-def compile_fixture(directory):
-    sources = [ROOT / "Magpie/MCP/MCPLocalTransport.swift", ROOT / "Magpie/MCP/MCPProtocol.swift",
-               ROOT / "Tests/Fixtures/MCPLiveClientFixture.swift"]
-    subprocess.run(["swiftc", "-module-cache-path", str(directory / "modules"),
-                    *map(str, sources), "-o", str(directory / "fixture")],
-                   check=True, timeout=90)
-
-
-def prepare_connection_app(directory, scratch):
-    directory.mkdir(mode=0o700, exist_ok=False)
+def compile_fixture(directory, scratch, sources, executable):
     products = scratch / "debug"
     sqlite_module = scratch / "checkouts/GRDB.swift/Sources/GRDBSQLite/module.modulemap"
     libraries = [products / "ClipboardEngine.o", products / "GRDB.o"]
     if not all(path.is_file() for path in [sqlite_module, *libraries]):
         raise SystemExit("Build Magpie in the given scratch directory with the Xcode SwiftPM build system first.")
+    subprocess.run([
+        "swiftc", "-swift-version", "5", "-Xfrontend", "-disable-sandbox",
+        "-module-cache-path", str(directory / "modules"), "-I", str(products),
+        "-Xcc", f"-fmodule-map-file={sqlite_module}",
+        *[str(ROOT / source) for source in sources], *map(str, libraries),
+        "-profile-generate", "-lsqlite3", "-o", str(executable),
+    ], check=True, timeout=90)
 
+
+def prepare_connection_app(directory, scratch):
+    directory.mkdir(mode=0o700, exist_ok=False)
     app = directory / "Magpie Connection QA.app"
     macos = app / "Contents/MacOS"
     macos.mkdir(parents=True)
@@ -52,16 +54,10 @@ def prepare_connection_app(directory, scratch):
         "Tests/Fixtures/MCPConnectionFixtureApp.swift",
         "Magpie/Views/MCPSettingsView.swift",
         *[f"Magpie/MCP/{name}.swift" for name in (
-            "MCPConnectionSetup", "MCPLocalTransport", "MCPProtocol", "MCPSharing"
+            "MCPConnectionSetup", "MCPLocalTransport", "MCPProtocol", "MCPHistoryAccess"
         )],
     ]
-    subprocess.run([
-        "swiftc", "-swift-version", "5", "-Xfrontend", "-disable-sandbox",
-        "-module-cache-path", str(directory / "modules"), "-I", str(products),
-        "-Xcc", f"-fmodule-map-file={sqlite_module}",
-        *[str(ROOT / source) for source in sources], *map(str, libraries),
-        "-profile-generate", "-lsqlite3", "-o", str(executable),
-    ], check=True, timeout=90)
+    compile_fixture(directory, scratch, sources, executable)
     info = plistlib.loads((ROOT / "Magpie/Info.plist").read_bytes())
     (app / "Contents/Info.plist").write_bytes(plistlib.dumps({
         "CFBundlePackageType": "APPL",
@@ -131,18 +127,18 @@ require("./server.js");
                 try:
                     call(1, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
                                            "clientInfo": {"name": "magpie-fixture", "version": "1"}})
-                    search = call(2, "tools/call", {"name": "search_shared_clips",
+                    search = call(2, "tools/call", {"name": "search_clips",
                                                    "arguments": {"query": CONNECTION_QUERY}})
                     clips = json.loads(search["content"][0]["text"])["clips"]
-                    if phase == "shared":
+                    if phase == "present":
                         if len(clips) != 1 or proof in json.dumps(search):
                             raise SystemExit("Search did not return exactly one preview without the proof.")
-                        fetched = call(3, "tools/call", {"name": "get_shared_clip",
+                        fetched = call(3, "tools/call", {"name": "get_clip",
                                                         "arguments": {"id": clips[0]["id"]}})
                         if proof not in json.dumps(fetched):
                             raise SystemExit("The full clip did not contain the fixture proof.")
                     elif clips:
-                        raise SystemExit("The revoked fixture clip was still searchable.")
+                        raise SystemExit("The deleted fixture clip was still searchable.")
                     parent.shutdown(socket.SHUT_WR)
                     if process.wait(timeout=8) != 0:
                         raise SystemExit("The packaged launcher exited unsuccessfully after closing its input.")
@@ -152,19 +148,25 @@ require("./server.js");
     print(f"The packaged launcher passed the {phase} check over the host's separate JavaScript streams.")
 
 
-def verify_codex(directory, launcher, proof_file):
-    node = shutil.which("node")
-    if not node or not launcher.is_file():
-        raise SystemExit("A Node.js executable and the installed Claude extension launcher are required.")
+def verify_codex(directory, launcher, bridge, proof_file):
+    if launcher:
+        command = shutil.which("node")
+        if not command or not launcher.is_file():
+            raise SystemExit("Node.js and the installed Claude extension launcher are required.")
+        arguments = [str(launcher.resolve())]
+    else:
+        if not bridge.is_file():
+            raise SystemExit("The isolated Magpie fixture executable is required.")
+        command, arguments = str(bridge.resolve()), ["--mcp-stdio"]
     proof = read_connection_proof(proof_file)
     config = (
-        "mcp_servers.magpie_qa={command=" + json.dumps(node)
-        + ",args=[" + json.dumps(str(launcher)) + "],required=true}"
+        "mcp_servers.magpie_qa={command=" + json.dumps(command)
+        + ",args=" + json.dumps(arguments) + ",required=true}"
     )
     prompt = (
         "Run this synthetic Magpie connector acceptance check. Use only the magpie_qa MCP tools. "
-        "Call search_shared_clips with the exact query magpie-button-fixture. Use the returned ID "
-        "to call get_shared_clip. Reply with the Proof line returned by that tool."
+        "Call search_clips with the exact query magpie-button-fixture. Use the returned ID "
+        "to call get_clip. Reply with the Proof line returned by that tool."
     )
     result = subprocess.run([
         "codex", "exec", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
@@ -179,15 +181,16 @@ def verify_codex(directory, launcher, proof_file):
     items = [event["item"] for event in events if event.get("type") == "item.completed"]
     calls = [item for item in items if item.get("type") == "mcp_tool_call"
              and item.get("server") == "magpie_qa" and item.get("error") is None]
-    retrieved = any(item.get("tool") == "get_shared_clip" and proof in json.dumps(item.get("result"))
+    retrieved = any(item.get("tool") == "get_clip" and proof in json.dumps(item.get("result"))
                     for item in calls)
     answered = any(item.get("type") == "agent_message" and proof in item.get("text", "") for item in items)
-    searched = any(item.get("tool") == "search_shared_clips" for item in calls)
+    searched = any(item.get("tool") == "search_clips" for item in calls)
     if result.returncode or not (searched and retrieved and answered):
         errors = [event.get("message", "") for event in events if event.get("type") == "error"]
         summary = " ".join(errors).strip()[:400]
         raise SystemExit(f"Codex check failed (search={searched}, fetch={retrieved}, answer={answered}). {summary}")
-    print("Codex used the installed Claude extension launcher to search, fetch, and return the exact proof.")
+    source = "the installed Claude extension launcher" if launcher else "the Magpie fixture"
+    print(f"Codex used {source} to search, fetch, and return the exact proof.")
 
 
 def read_connection_proof(path):
@@ -197,7 +200,7 @@ def read_connection_proof(path):
     return proof
 
 
-def run_fixture(directory, bridge):
+def run_fixture(directory, bridge, scratch):
     directory.mkdir(mode=0o700, exist_ok=False)
     if not bridge.is_file():
         raise SystemExit("Build Magpie first and pass the executable with --bridge.")
@@ -209,7 +212,9 @@ def run_fixture(directory, bridge):
         "environment": platform.platform(),
         "bridge": str(bridge),
     }, indent=2) + "\n")
-    compile_fixture(directory)
+    compile_fixture(directory, scratch, [
+        "Magpie/MCP/MCPLocalTransport.swift", "Magpie/MCP/MCPProtocol.swift", "Tests/Fixtures/MCPLiveClientFixture.swift",
+    ], directory / "fixture")
     with subprocess.Popen([directory / "fixture"], cwd=directory, env=fixture_env(directory),
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True) as process:
         ready = selectors.DefaultSelector()
@@ -233,7 +238,6 @@ def run_fixture(directory, bridge):
 
 
 def claude_config(directory, install):
-    manifest = json.loads((directory / "manifest.json").read_text())
     name = f"magpie-qa-{directory.name}"
     block = directory / "claude-config-insertion"
     raw = CLAUDE_CONFIG.read_text()
@@ -242,12 +246,17 @@ def claude_config(directory, install):
     if install:
         if name in servers or block.exists():
             raise SystemExit("This fixture already has a Claude Desktop entry.")
-        entry = {
-            "command": manifest["bridge"],
-            "args": ["--mcp-stdio"],
-            "env": {"CFFIXED_USER_HOME": str(directory),
-                    "LLVM_PROFILE_FILE": str(directory / "magpie-%p.profraw")},
-        }
+        app_bridge = directory / "Magpie Connection QA.app/Contents/MacOS/MagpieConnectionQA"
+        if app_bridge.is_file():
+            entry = {"command": str(app_bridge), "args": ["--mcp-stdio"]}
+        else:
+            manifest = json.loads((directory / "manifest.json").read_text())
+            entry = {
+                "command": manifest["bridge"],
+                "args": ["--mcp-stdio"],
+                "env": {"CFFIXED_USER_HOME": str(directory),
+                        "LLVM_PROFILE_FILE": str(directory / "magpie-%p.profraw")},
+            }
         location = re.search(r'"mcpServers"\s*:\s*\{', raw)
         if not location:
             raise SystemExit("Could not locate the top-level mcpServers object.")
@@ -283,7 +292,7 @@ def claude_config(directory, install):
 
 
 def check(directory, client, phase):
-    phases = ("shared-search", "shared-fetch") if phase == "shared" else ("revoked-empty-search",)
+    phases = ("present-search", "present-fetch") if phase == "present" else ("deleted-empty-search",)
     expected = [name for name in phases if not (directory / f"{client}.{name}").exists()]
     if expected:
         raise SystemExit(f"{client}: missing observed tool replies: {', '.join(expected)}")
@@ -294,34 +303,38 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path, help="private, unique fixture path under /private/tmp")
     subparsers = parser.add_subparsers(dest="action", required=True)
-    subparsers.add_parser("serve").add_argument("--bridge", type=Path, required=True)
-    subparsers.add_parser("prepare-connection-app").add_argument("--scratch", type=Path, default=ROOT / ".build")
-    subparsers.add_parser("verify-connection-stdio").add_argument("phase", choices=("shared", "revoked"))
+    serve = subparsers.add_parser("serve")
+    serve.add_argument("--bridge", type=Path, required=True)
+    serve.add_argument("--scratch", type=Path, default=REGRESSION_SCRATCH)
+    subparsers.add_parser("prepare-connection-app").add_argument("--scratch", type=Path, default=REGRESSION_SCRATCH)
+    subparsers.add_parser("verify-connection-stdio").add_argument("phase", choices=("present", "deleted"))
     codex = subparsers.add_parser("verify-codex")
-    codex.add_argument("--launcher", type=Path, required=True)
+    source = codex.add_mutually_exclusive_group(required=True)
+    source.add_argument("--launcher", type=Path)
+    source.add_argument("--bridge", type=Path)
     codex.add_argument("--proof-file", type=Path, required=True)
     subparsers.add_parser("claude-install")
     subparsers.add_parser("claude-remove")
-    subparsers.add_parser("revoke").add_argument("client", choices=CLIENTS)
+    subparsers.add_parser("delete").add_argument("client", choices=CLIENTS)
     checker = subparsers.add_parser("check")
     checker.add_argument("client", choices=CLIENTS)
-    checker.add_argument("phase", choices=("shared", "revoked"))
+    checker.add_argument("phase", choices=("present", "deleted"))
     args = parser.parse_args()
     directory = args.directory.resolve()
     if directory.parent != Path("/private/tmp") or not re.fullmatch(r"magpie-[a-z0-9-]+", directory.name):
         parser.error("use /private/tmp/magpie-<short-unique-suffix>")
     if args.action == "serve":
-        run_fixture(directory, args.bridge.resolve())
+        run_fixture(directory, args.bridge.resolve(), args.scratch.resolve())
     elif args.action == "prepare-connection-app":
         prepare_connection_app(directory, args.scratch.resolve())
     elif args.action == "verify-connection-stdio":
         verify_connection_stdio(directory, args.phase)
     elif args.action == "verify-codex":
-        verify_codex(directory, args.launcher.resolve(), args.proof_file.resolve())
+        verify_codex(directory, args.launcher, args.bridge, args.proof_file.resolve())
     elif args.action.startswith("claude-"):
         claude_config(directory, args.action == "claude-install")
-    elif args.action == "revoke":
-        (directory / f"{args.client}.revoked").touch()
+    elif args.action == "delete":
+        (directory / f"{args.client}.deleted").touch()
     else:
         check(directory, args.client, args.phase)
 

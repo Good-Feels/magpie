@@ -12,7 +12,7 @@ enum MCPConnectionSetup {
             "name": "magpie-clipboard",
             "display_name": "Magpie",
             "version": version,
-            "description": "Search and read text clips you choose to share from Magpie.",
+            "description": "Search and read your Magpie clipboard history when access is enabled.",
             "author": ["name": "Good Feels Inc"],
             "homepage": "https://github.com/Good-Feels/magpie",
             "compatibility": ["platforms": ["darwin"]],
@@ -56,7 +56,7 @@ enum MCPConnectionSetup {
 
         Follow https://developers.openai.com/api/docs/guides/secure-mcp-tunnels. Check which OpenAI Platform organization and ChatGPT account or workspace I want to use. Use an existing tunnel only if it already belongs to this Magpie setup. Otherwise, guide me through creating a dedicated tunnel and connecting a personal Magpie plugin in ChatGPT. Ask me to complete any required account approvals and enter credentials locally using the official instructions. Keep credentials out of the chat and command arguments. Keep the connection private.
 
-        When the plugin is connected, ask me to share a synthetic test clip from Magpie. Verify that ChatGPT can find and read that clip using Magpie’s search_shared_clips and get_shared_clip tools.
+        When the plugin is connected, ask me to enable clipboard history access in Magpie Settings → MCP and copy a synthetic test clip. Verify that ChatGPT can find and read that clip using Magpie’s search_clips and get_clip tools. Use only that synthetic clip for the test.
         """
     }
 

@@ -136,7 +136,6 @@ struct ClipboardHistoryView: View {
 
 struct ClipHistoryList: View {
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var mcpSharing: MCPSharing
 
     var body: some View {
         ScrollView {
@@ -146,12 +145,9 @@ struct ClipHistoryList: View {
                         ClipItemRow(
                             item: entry,
                             showCopied: appState.copiedItemID == entry.id,
-                            isShared: mcpSharing.contains(entry.id),
                             onSelect: { appState.copyToClipboard(id: entry.id) },
                             onDelete: { appState.deleteClip(id: entry.id) },
                             onTogglePin: { appState.togglePin(id: entry.id) },
-                            onToggleSharing: mcpSharing.canToggle(entry)
-                                ? { appState.toggleMCPSharing(for: entry.id) } : nil,
                             loadThumbnail: { await appState.thumbnail(for: entry.id) }
                         )
                         if entry.id != appState.historyEntries.last?.id {
