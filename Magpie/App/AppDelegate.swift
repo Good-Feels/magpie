@@ -265,6 +265,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// Covers every close path — performClose and transient outside-click
     /// dismissal — so the fallback anchor window never outlives the popover.
     func popoverDidClose(_ notification: Notification) {
+        guard !popover.isShown else { return }
+        appState.closeHistory()
         fallbackAnchorWindow?.orderOut(nil)
     }
 
@@ -286,8 +288,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // Refresh clipboard access state each time the popover opens
         appState.accessChecker.checkAccess()
-        appState.loadClips()
-        analytics.trackPopoverOpened(itemCount: appState.displayedClips.count)
+        appState.openHistory()
 
         // When the menu bar is full, macOS pushes the status item's window
         // off-screen. Anchoring the popover to it would open the popover

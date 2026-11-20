@@ -32,7 +32,7 @@ final class MCPSharingTests: XCTestCase {
 
         sharing.toggle(shared)
         sharing.toggle(file)
-        sharing.retainClips(in: [shared, unshared, file])
+        sharing.retainClips(withIDs: Set([shared, unshared, file].compactMap(\.id)))
 
         let listing = try await exchange([
             #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"regression","version":"1"}}}"#,
@@ -66,7 +66,7 @@ final class MCPSharingTests: XCTestCase {
 
         sharing.toggle(shared)
         XCTAssertNotEqual(sharing.clips.first?.id.uuidString, id)
-        sharing.retainClips(in: [unshared, file])
+        sharing.retainClips(withIDs: Set([unshared, file].compactMap(\.id)))
         let deleted = try await exchange([call("search_shared_clips")], home: home)
         XCTAssertTrue(try searchResults(try result(deleted, at: 0)).isEmpty)
 

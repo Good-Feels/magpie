@@ -1,0 +1,25 @@
+{
+  "git_head": "c705c7969927c05d73fd606c4046d294dceb5181",
+  "environment": {
+    "macos": "27.2",
+    "build": "26B123",
+    "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)\nTarget: arm64-apple-macosx27.2.0",
+    "architecture": "arm64"
+  },
+  "app_version": "1.0.18",
+  "app_build": "19",
+  "runner_sha256": "1f1fe1ff515b141f45eb2ed8b7111996677e9a7170b6b5a1f9481c0239259475",
+  "finished_at": "2026-11-20T16:18:51.841182+00:00",
+  "native_test_totals": {
+    "app": 55,
+    "keeper": 9,
+    "engine": 22
+  },
+  "results_sha256": "8499f3d3da19a9908a2219d0055463438e58e69e24f0994d4a9f4f450fb9103c",
+  "scenarios": {
+    "MAG-007-A": "passed",
+    "MAG-007-B": "passed",
+    "MAG-007-C": "passed"
+  },
+  "gui_check": "Production SwiftUI history list in an XCTest window using 1,207 generated text and PNG clips. Verified scroll pagination, thumbnail size, pin reorder and full-history search."
+}

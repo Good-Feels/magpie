@@ -7,19 +7,21 @@ import ClipboardEngine
 /// source app name, and a relative timestamp.
 /// When `showCopied` is true, a "Copied!" overlay animates in.
 struct ClipItemRow: View {
-    let item: ClipItem
-    let isHovered: Bool
+    let item: ClipHistoryEntry
     let showCopied: Bool
     let isShared: Bool
     let onSelect: () -> Void
     let onDelete: () -> Void
     let onTogglePin: () -> Void
     let onToggleSharing: (() -> Void)?
+    let loadThumbnail: () async -> CGImage?
 
     @AppStorage("showSourceApp") private var showSourceApp: Bool = true
     @AppStorage("showTimestamps") private var showTimestamps: Bool = true
 
     @State private var appIcon: NSImage?
+    @State private var thumbnail: CGImage?
+    @State private var isHovered = false
 
     var body: some View {
         Button(action: onSelect) {
@@ -49,7 +51,19 @@ struct ClipItemRow: View {
                 onDelete()
             }
         }
-        .onAppear { loadAppIcon() }
+        .onHover { isHovered = $0 }
+        .task(id: item.id) {
+            loadAppIcon()
+            if item.contentType == "image", item.imageByteCount != nil {
+                let image = await loadThumbnail()
+                if !Task.isCancelled { thumbnail = image }
+            }
+        }
+        .onDisappear {
+            appIcon = nil
+            thumbnail = nil
+            isHovered = false
+        }
     }
 
     // MARK: - Row Content
@@ -118,31 +132,32 @@ struct ClipItemRow: View {
     private var contentPreview: some View {
         switch item.contentType {
         case "image":
-            if let imageData = item.contentImageData,
-               let nsImage = NSImage(data: imageData) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 48)
-                    .cornerRadius(4)
-            } else {
-                Text("[Image]")
-                    .lineLimit(1)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+            Group {
+                if let thumbnail {
+                    Image(thumbnail, scale: 1, label: Text("Image clip"))
+                        .resizable()
+                        .scaledToFit()
+                        .cornerRadius(4)
+                } else {
+                    Text("[Image]")
+                        .lineLimit(1)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
             }
+            .frame(height: 48, alignment: .leading)
         case "filePath":
             HStack(spacing: 4) {
                 Image(systemName: "doc")
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
-                Text(item.filePaths.count > 1 ? (item.previewText ?? "\(item.filePaths.count) files") : (item.contentFilePath ?? item.previewText ?? ""))
+                Text(item.previewText)
                     .lineLimit(2)
                     .font(.system(size: 12))
                     .foregroundColor(.primary)
             }
         default:
-            Text(item.previewText ?? item.contentText ?? "")
+            Text(item.previewText)
                 .lineLimit(2)
                 .font(.system(size: 12))
                 .foregroundColor(.primary)
@@ -182,8 +197,8 @@ struct ClipItemRow: View {
 
     @ViewBuilder
     private var sizeBadge: some View {
-        if item.contentType == "image", let data = item.contentImageData {
-            Text(formatBytes(data.count))
+        if item.contentType == "image", let size = item.imageByteCount {
+            Text(formatBytes(size))
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(.secondary.opacity(0.5))
                 .padding(.horizontal, 4)
@@ -192,8 +207,8 @@ struct ClipItemRow: View {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color.secondary.opacity(0.1))
                 )
-        } else if let text = item.contentText {
-            Text("\(text.count)")
+        } else if let length = item.textLength {
+            Text("\(length)")
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(.secondary.opacity(0.5))
                 .padding(.horizontal, 4)

@@ -46,14 +46,15 @@ final class MCPSharing: ObservableObject {
 
     var isAvailable: Bool { isEnabled && status == .ready }
 
-    func canToggle(_ item: ClipItem) -> Bool {
-        isAvailable && (contains(item.id) || (clips.count < Self.clipLimit && Self.canShare(item)))
+    func canToggle(_ entry: ClipHistoryEntry) -> Bool {
+        isAvailable && (contains(entry.id) || (
+            clips.count < Self.clipLimit
+            && Self.canShareText(type: entry.contentType, byteCount: entry.textByteCount)
+        ))
     }
 
-    private static func canShare(_ item: ClipItem) -> Bool {
-        guard item.id != nil, let text = item.contentText,
-              item.contentType == "text" || item.contentType == "richText" else { return false }
-        return (1...16_384).contains(text.utf8.count)
+    private static func canShareText(type: String, byteCount: Int?) -> Bool {
+        (type == "text" || type == "richText") && (1...16_384).contains(byteCount ?? 0)
     }
 
     func contains(_ historyID: Int64?) -> Bool {
@@ -64,14 +65,14 @@ final class MCPSharing: ObservableObject {
         guard isAvailable, let id = item.id else { return }
         if contains(id) {
             clips.removeAll { $0.historyID == id }
-        } else if clips.count < Self.clipLimit, Self.canShare(item), let text = item.contentText {
+        } else if clips.count < Self.clipLimit, let text = item.contentText,
+                  Self.canShareText(type: item.contentType, byteCount: text.utf8.count) {
             clips.append(MCPSharedClip(historyID: id, text: text, createdAt: item.createdAt))
         }
     }
 
-    func retainClips(in history: [ClipItem]) {
+    func retainClips(withIDs ids: Set<Int64>) {
         guard !clips.isEmpty else { return }
-        let ids = Set(history.compactMap(\.id))
         let retained = clips.filter { ids.contains($0.historyID) }
         if retained.count != clips.count { clips = retained }
     }

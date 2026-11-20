@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import Combine
 import ClipboardEngine
+import ImageIO
 
 /// Central app coordinator. Owns the database, clipboard monitor,
 /// repository, and exclusion manager. Exposes published state for SwiftUI views.
@@ -9,15 +10,22 @@ import ClipboardEngine
 final class AppState: ObservableObject {
     // MARK: - Published State
 
-    /// The full list of clips from the database.
-    @Published var clips: [ClipItem] = []
-
-    /// The clips currently displayed (filtered by search when active).
-    @Published var displayedClips: [ClipItem] = []
+    @Published private(set) var historyEntries: [ClipHistoryEntry] = []
+    @Published private(set) var historyCount: Int?
+    @Published private(set) var historyReadFailed = false
+    @Published private(set) var isRefreshingHistory = false
 
     /// The current search query typed in the search bar.
     @Published var searchText: String = "" {
-        didSet { updateDisplayedClips() }
+        didSet {
+            let oldQuery = oldValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard oldQuery != historyQuery else { return }
+            if historyQuery.isEmpty { hasTrackedCurrentSearch = false }
+            if isHistoryOpen {
+                resetHistory()
+                requestHistoryPage(debounceSearch: !historyQuery.isEmpty)
+            }
+        }
     }
 
     /// Set to the ID of a clip that was just copied — drives the "Copied!" animation.
@@ -38,21 +46,28 @@ final class AppState: ObservableObject {
     private let analytics = AnalyticsService.shared
     private(set) var databaseManager: DatabaseManager?
     private(set) var repository: ClipItemRepository?
-    let monitor: ClipboardMonitor
-    let exclusionManager: ExclusionListManager
-    let accessChecker: ClipboardAccessChecker
+    private(set) lazy var monitor = ClipboardMonitor(pollInterval: 0.5)
+    let exclusionManager = ExclusionListManager()
+    private(set) lazy var accessChecker = ClipboardAccessChecker()
     let mcpSharing = MCPSharing()
+    private static let historyPageSize = 60
+    private var historyTask: Task<Void, Never>?
+    private var isHistoryOpen = false
+    private var trackNextHistoryOpen = false
+    private var requestedHistoryCount = AppState.historyPageSize
     private var hasTrackedCurrentSearch = false
+
+    private var historyQuery: String { searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     // MARK: - Init
 
-    init() {
-        monitor = ClipboardMonitor(pollInterval: 0.5)
-        exclusionManager = ExclusionListManager()
-        accessChecker = ClipboardAccessChecker()
+    convenience init() {
         Self.migrateLegacyDatabaseIfNeeded()
+        self.init(database: DatabaseStartup.open(defaults: .standard, makeDatabase: { try DatabaseManager() }))
+    }
 
-        switch DatabaseStartup.open(defaults: .standard, makeDatabase: { try DatabaseManager() }) {
+    init(database: Result<DatabaseManager, Error>) {
+        switch database {
         case .success(let dbManager):
             databaseManager = dbManager
             repository = ClipItemRepository(dbPool: dbManager.dbPool)
@@ -62,8 +77,6 @@ final class AppState: ObservableObject {
             print("[Magpie] Database unavailable; preserving history: \(error)")
             databaseError = error.localizedDescription
         }
-
-        loadClips()
     }
 
     /// One-time migration for users moving from a non-sandbox build
@@ -138,7 +151,7 @@ final class AppState: ObservableObject {
         ), let repository else { return }
         do {
             if try repository.record(&item, maxUnpinnedCount: HistorySettings.limit(in: .standard)) {
-                loadClips()
+                historyDidChange()
             }
         } catch {
             print("[Magpie] Failed to save clip: \(error)")
@@ -147,39 +160,120 @@ final class AppState: ObservableObject {
 
     // MARK: - Data Access
 
-    func loadClips() {
-        clips = (try? repository?.fetchAll()) ?? []
-        mcpSharing.retainClips(in: clips)
-        updateDisplayedClips()
+    func openHistory() {
+        isHistoryOpen = true
+        trackNextHistoryOpen = true
+        resetHistory()
+        requestHistoryPage()
     }
 
-    private func updateDisplayedClips() {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if query.isEmpty {
-            displayedClips = clips
-            hasTrackedCurrentSearch = false
-        } else {
-            displayedClips = (try? repository?.search(query: query)) ?? []
-            if !hasTrackedCurrentSearch {
-                analytics.trackSearchPerformed(
-                    queryLength: query.count,
-                    resultCount: displayedClips.count
-                )
-                hasTrackedCurrentSearch = true
+    func closeHistory() {
+        isHistoryOpen = false
+        trackNextHistoryOpen = false
+        resetHistory()
+    }
+
+    var hasMoreHistory: Bool { historyEntries.count < (historyCount ?? 0) }
+
+    func loadMoreHistory(after entry: ClipHistoryEntry) {
+        guard historyTask == nil, hasMoreHistory, !historyReadFailed,
+              historyEntries.last?.id == entry.id else { return }
+        requestedHistoryCount = historyEntries.count + Self.historyPageSize
+        requestHistoryPage(after: entry)
+    }
+
+    func retryHistory() {
+        requestHistoryPage()
+    }
+
+    private func resetHistory() {
+        historyTask?.cancel()
+        historyTask = nil
+        historyEntries = []
+        historyCount = nil
+        historyReadFailed = false
+        isRefreshingHistory = false
+        requestedHistoryCount = Self.historyPageSize
+    }
+
+    private func historyDidChange() {
+        let sharedIDs = mcpSharing.clips.map(\.historyID)
+        if !sharedIDs.isEmpty {
+            mcpSharing.retainClips(withIDs: (try? repository?.existingIDs(sharedIDs)) ?? [])
+        }
+        if isHistoryOpen { requestHistoryPage() }
+    }
+
+    private func requestHistoryPage(after cursor: ClipHistoryEntry? = nil, debounceSearch: Bool = false) {
+        guard isHistoryOpen, let repository else { return }
+        historyTask?.cancel()
+        historyReadFailed = false
+        isRefreshingHistory = cursor == nil
+        let query = historyQuery
+        let limit = cursor == nil ? requestedHistoryCount : Self.historyPageSize
+        historyTask = Task { [weak self] in
+            do {
+                if debounceSearch { try await Task.sleep(nanoseconds: 150_000_000) }
+                let page = try await repository.historyPage(query: query, after: cursor, limit: limit)
+                guard !Task.isCancelled, let self else { return }
+                historyTask = nil
+                if let count = page.totalCount {
+                    if historyEntries != page.entries { historyEntries = page.entries }
+                    historyCount = count
+                    isRefreshingHistory = false
+                    trackHistoryLoad(query: query, count: count)
+                } else {
+                    historyEntries.append(contentsOf: page.entries)
+                    if page.entries.count < limit { historyCount = historyEntries.count }
+                }
+            } catch {
+                guard !Task.isCancelled, let self else { return }
+                historyTask = nil
+                historyReadFailed = true
+                isRefreshingHistory = false
             }
         }
+    }
+
+    private func trackHistoryLoad(query: String, count: Int) {
+        if trackNextHistoryOpen {
+            analytics.trackPopoverOpened(itemCount: count)
+            trackNextHistoryOpen = false
+        }
+        if !query.isEmpty, !hasTrackedCurrentSearch {
+            analytics.trackSearchPerformed(queryLength: query.count, resultCount: count)
+            hasTrackedCurrentSearch = true
+        }
+    }
+
+    func thumbnail(for id: Int64) async -> CGImage? {
+        guard let repository else { return nil }
+        return await Self.loadThumbnail(for: id, from: repository)
+    }
+
+    private nonisolated static func loadThumbnail(for id: Int64, from repository: ClipItemRepository) async -> CGImage? {
+        guard let data = try? await repository.imageData(id: id), !Task.isCancelled else { return nil }
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 320,
+        ]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 
     // MARK: - Actions
 
     func toggleMCPSharing(for id: Int64) {
-        guard let item = clips.first(where: { $0.id == id }) else { return }
+        guard let item = try? repository?.fetch(id: id) else { return }
         mcpSharing.toggle(item)
     }
 
     /// Copies the given clip's content back to the system clipboard,
     /// triggers the "Copied!" animation, then dismisses the popover.
-    func copyToClipboard(_ item: ClipItem) {
+    func copyToClipboard(id: Int64) {
+        guard let item = try? repository?.fetch(id: id) else { return }
         let pasteboard = NSPasteboard.general
         guard ClipboardContent.restore(item, to: pasteboard) else { return }
 
@@ -198,20 +292,20 @@ final class AppState: ObservableObject {
     }
 
     /// Toggles the pin state on a clip.
-    func togglePin(_ item: ClipItem) {
+    func togglePin(id: Int64) {
         do {
-            try repository?.togglePin(item)
-            loadClips()
+            try repository?.togglePin(id: id)
+            historyDidChange()
         } catch {
             print("[Magpie] Failed to toggle pin: \(error)")
         }
     }
 
     /// Deletes a single clip and refreshes the list.
-    func deleteClip(_ item: ClipItem) {
+    func deleteClip(id: Int64) {
         do {
-            try repository?.delete(item)
-            loadClips()
+            try repository?.delete(id: id)
+            historyDidChange()
         } catch {
             print("[Magpie] Failed to delete clip: \(error)")
         }
@@ -221,7 +315,7 @@ final class AppState: ObservableObject {
     func clearAll() {
         do {
             try repository?.deleteAll()
-            loadClips()
+            historyDidChange()
         } catch {
             print("[Magpie] Failed to clear clips: \(error)")
         }

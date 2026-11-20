@@ -91,6 +91,8 @@ Requires Xcode 15+ and macOS 13+.
 | Settings | Click the ⚙ gear icon in the popover footer |
 | Quit | Click "Quit" in the popover footer |
 
+Choose **Settings → General → History → Unlimited** to keep more than 1,000 clips. Older clips load as you scroll, and search covers all saved history.
+
 ## Connect an AI Client
 
 Enable sharing in **Magpie → Settings → MCP**, then right-click the text clips you want an assistant to read. See the [MCP setup guide](docs/MCP.md) for Claude Desktop, ChatGPT via OpenAI Secure MCP Tunnel, Claude Code, and Codex.

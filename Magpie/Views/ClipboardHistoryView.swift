@@ -5,9 +5,6 @@ import ClipboardEngine
 /// and a footer with Settings / Quit.
 struct ClipboardHistoryView: View {
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject private var mcpSharing: MCPSharing
-
-    @State private var hoveredClipID: Int64?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,10 +31,16 @@ struct ClipboardHistoryView: View {
                 .padding().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !appState.accessChecker.hasAccess {
                 ClipboardPermissionView(accessChecker: appState.accessChecker)
-            } else if appState.displayedClips.isEmpty {
+            } else if appState.historyEntries.isEmpty && appState.historyReadFailed {
+                HistoryRetryView(action: appState.retryHistory)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if appState.historyCount == nil {
+                ProgressView("Loading clips…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if appState.historyEntries.isEmpty {
                 emptyState
             } else {
-                clipList
+                ClipHistoryList()
             }
 
             Divider()
@@ -46,9 +49,6 @@ struct ClipboardHistoryView: View {
             footerBar
         }
         .frame(width: 360, height: 520)
-        .onAppear {
-            appState.loadClips()
-        }
     }
 
     // MARK: - Subviews
@@ -60,50 +60,14 @@ struct ClipboardHistoryView: View {
             Text("Magpie")
                 .font(.headline)
             Spacer()
-            Text("\(appState.displayedClips.count) items")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            if let count = appState.historyCount {
+                Text("\(count) items")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-    }
-
-    private var clipList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(appState.displayedClips) { clip in
-                    let isShared = mcpSharing.contains(clip.id)
-                    let toggleSharing: (() -> Void)? = clip.id.flatMap { id in
-                        guard mcpSharing.canToggle(clip) else { return nil }
-                        return { appState.toggleMCPSharing(for: id) }
-                    }
-                    ClipItemRow(
-                        item: clip,
-                        isHovered: hoveredClipID == clip.id,
-                        showCopied: appState.copiedItemID == clip.id,
-                        isShared: isShared,
-                        onSelect: {
-                            appState.copyToClipboard(clip)
-                        },
-                        onDelete: {
-                            appState.deleteClip(clip)
-                        },
-                        onTogglePin: {
-                            appState.togglePin(clip)
-                        },
-                        onToggleSharing: toggleSharing
-                    )
-                    .onHover { isHovering in
-                        hoveredClipID = isHovering ? clip.id : nil
-                    }
-
-                    if clip.id != appState.displayedClips.last?.id {
-                        Divider()
-                            .padding(.leading, 44)
-                    }
-                }
-            }
-        }
     }
 
     private var emptyState: some View {
@@ -167,5 +131,58 @@ struct ClipboardHistoryView: View {
 
     private func openSettings() {
         appState.openSettings()
+    }
+}
+
+struct ClipHistoryList: View {
+    @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var mcpSharing: MCPSharing
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(appState.historyEntries) { entry in
+                    VStack(spacing: 0) {
+                        ClipItemRow(
+                            item: entry,
+                            showCopied: appState.copiedItemID == entry.id,
+                            isShared: mcpSharing.contains(entry.id),
+                            onSelect: { appState.copyToClipboard(id: entry.id) },
+                            onDelete: { appState.deleteClip(id: entry.id) },
+                            onTogglePin: { appState.togglePin(id: entry.id) },
+                            onToggleSharing: mcpSharing.canToggle(entry)
+                                ? { appState.toggleMCPSharing(for: entry.id) } : nil,
+                            loadThumbnail: { await appState.thumbnail(for: entry.id) }
+                        )
+                        if entry.id != appState.historyEntries.last?.id {
+                            Divider().padding(.leading, 44)
+                        }
+                    }
+                }
+
+                if appState.historyReadFailed {
+                    HistoryRetryView(action: appState.retryHistory).padding(12)
+                } else if appState.hasMoreHistory, let last = appState.historyEntries.last {
+                    ProgressView("Loading more clips…")
+                        .controlSize(.small)
+                        .padding(12)
+                        .task(id: appState.isRefreshingHistory) {
+                            appState.loadMoreHistory(after: last)
+                        }
+                        .id(last.id)
+                }
+            }
+        }
+    }
+}
+
+private struct HistoryRetryView: View {
+    let action: () -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text("Couldn’t load clips.").foregroundStyle(.secondary)
+            Button("Try Again", action: action)
+        }
     }
 }

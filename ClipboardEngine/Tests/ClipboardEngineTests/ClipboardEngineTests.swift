@@ -225,6 +225,87 @@ final class ClipboardEngineTests: XCTestCase {
         prefs.set(-1, forKey: HistorySettings.key)
         XCTAssertEqual(HistorySettings.limit(in: prefs), 200)
     }
+
+    func testMAG007UnlimitedPagesReachOldClipsWithIdenticalTimestamps() async throws {
+        let prefs = defaults()
+        prefs.set(0, forKey: HistorySettings.key)
+        let db = try database()
+        let repo = ClipItemRepository(dbPool: db.dbPool)
+        let timestamp = Date(timeIntervalSince1970: 1_000.123)
+        let limit = HistorySettings.limit(in: prefs)
+        var pinned: [Int64] = []
+        var unpinned: [Int64] = []
+        for index in 0..<1_207 {
+            var item = ClipItem(
+                contentText: index.isMultiple(of: 23) ? "Searchable sample \(index)" : "Clip \(index)",
+                isPinned: index.isMultiple(of: 20),
+                createdAt: timestamp
+            )
+            XCTAssertTrue(try repo.record(&item, maxUnpinnedCount: limit))
+            let id = try XCTUnwrap(item.id)
+            if item.isPinned { pinned.append(id) } else { unpinned.append(id) }
+        }
+
+        let first = try await repo.historyPage(query: "", after: nil, limit: 60)
+        XCTAssertEqual(first.totalCount, 1_207)
+        XCTAssertEqual(first.entries.count, 60)
+        var found = first.entries
+        for _ in 0..<21 {
+            let boundary = try XCTUnwrap(found.last)
+            let page = try await repo.historyPage(query: "", after: boundary, limit: 60)
+            XCTAssertNil(page.totalCount)
+            found.append(contentsOf: page.entries)
+        }
+        XCTAssertEqual(found.map(\.id), Array(pinned.reversed()) + Array(unpinned.reversed()))
+
+        let expected = found.filter { $0.previewText.hasPrefix("Searchable sample") }
+        let search = try await repo.historyPage(query: "SEARCHABLE SAMPLE", after: nil, limit: 10)
+        XCTAssertEqual(search.totalCount, expected.count)
+        XCTAssertEqual(search.entries.map(\.id), expected.prefix(10).map(\.id))
+        let boundary = try XCTUnwrap(search.entries.last)
+        try repo.delete(id: boundary.id)
+        let next = try await repo.historyPage(query: "SEARCHABLE SAMPLE", after: boundary, limit: 10)
+        XCTAssertEqual(next.entries.map(\.id), expected.dropFirst(10).prefix(10).map(\.id))
+    }
+
+    func testMAG007PagedPreviewsPreserveClipActionsAndSharedIDs() async throws {
+        let db = try database()
+        let repo = ClipItemRepository(dbPool: db.dbPool)
+        var image = ClipItem(contentImageData: Data(repeating: 1, count: 120_000), contentType: "image")
+        var text = ClipItem(contentText: String(repeating: "🪶", count: 900) + "deep search term",
+                            contentRichData: Data("synthetic RTF".utf8), contentType: "richText")
+        var legacyFile = ClipItem(contentFilePath: "/synthetic/legacy.txt", contentType: "filePath",
+                                  previewText: "legacy.txt")
+        try repo.insert(&image)
+        try repo.insert(&text)
+        try repo.insert(&legacyFile)
+        let imageID = try XCTUnwrap(image.id)
+        let textID = try XCTUnwrap(text.id)
+        let fileID = try XCTUnwrap(legacyFile.id)
+
+        let first = try await repo.historyPage(query: "", after: nil, limit: 10)
+        XCTAssertEqual(first.totalCount, 3)
+        XCTAssertEqual(first.entries.first(where: { $0.id == imageID })?.imageByteCount, 120_000)
+        XCTAssertEqual(first.entries.first(where: { $0.id == fileID })?.previewText, "/synthetic/legacy.txt")
+        let search = try await repo.historyPage(query: "deep search term", after: nil, limit: 10)
+        XCTAssertEqual(search.entries.map(\.id), [textID])
+        let summary = try XCTUnwrap(search.entries.first)
+        XCTAssertEqual(summary.previewText.count, 500)
+        XCTAssertEqual(summary.textByteCount, text.contentText?.utf8.count)
+        let imagePayload = try await repo.imageData(id: imageID)
+        XCTAssertEqual(imagePayload, image.contentImageData)
+        XCTAssertEqual(try repo.fetch(id: textID)?.contentRichData, text.contentRichData)
+        XCTAssertEqual(try repo.fetch(id: fileID)?.filePaths, ["/synthetic/legacy.txt"])
+
+        try repo.togglePin(id: imageID)
+        try repo.enforceHistoryLimit(1)
+        let retained = try await repo.historyPage(query: "", after: nil, limit: 10)
+        XCTAssertEqual(retained.entries.map(\.id), [imageID, fileID])
+        XCTAssertEqual(try repo.existingIDs([imageID, textID, fileID]), Set([imageID, fileID]))
+        try repo.deleteAll()
+        XCTAssertTrue(try repo.existingIDs([imageID, fileID]).isEmpty)
+    }
+
     @MainActor func testMAG004TwoFilesPersistReopenAndRestoreInOrder() async throws {
         let dir = try directory()
         let pb = pasteboard()
