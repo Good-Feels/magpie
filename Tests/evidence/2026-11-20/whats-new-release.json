@@ -1,0 +1,29 @@
+{
+  "release": "v1.0.21",
+  "release_revision": "4db9fefc9f9ed2c916af73eeacff2e8425612272",
+  "environment": "macOS 27.2 arm64, installed Magpie in Applications",
+  "dmg_sha256": "81596906db86cf0f6cebc28d88b26038c7ae4bdeb28f4759b9588eaa4487e277",
+  "notarization_submission": "fe55190e-aaf5-4cae-a0a2-7bc4520aebde",
+  "native_regressions": {
+    "run": "20261120T222022Z",
+    "command": "python3 scripts/test-regressions.py --root-scratch .build/mcp-regression-root --engine-scratch /private/tmp/magpie-remediation-20261117/engine-build --cache-path /private/tmp/magpie-remediation-20261117/cache",
+    "tests_passed": 91
+  },
+  "scenarios": [
+    {
+      "id": "MAG-009",
+      "result": "passed",
+      "observed": "Sparkle installed 1.0.21 (22) over 1.0.20 (21) and relaunched at 22:25:20 UTC. The user confirmed seeing the first-launch dialog. The next accessibility snapshot showed Magpie Settings open to the MCP tab. A second launch had no What’s New window."
+    },
+    {
+      "id": "Published update and updater state",
+      "result": "passed",
+      "observed": "The published DMG and Sparkle feed matched the signed and notarized local artifacts. The installed app reported 1.0.21 was up to date."
+    },
+    {
+      "id": "Post-update keeper behavior",
+      "result": "passed",
+      "observed": "With Launch at Login enabled, the keeper restarted only the GUI app after SIGTERM. Normal Quit wrote the intentional quit marker and stayed closed during a five-second watch. Magpie was then opened normally and left running."
+    }
+  ]
+}
