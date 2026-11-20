@@ -12,8 +12,12 @@ Magpie starts with sharing off. You can share up to 50 clips at a time. Each cli
 
 ## Claude Desktop for macOS
 
+In **Magpie → Settings → MCP**, click **Connect to Claude**. Magpie opens a desktop extension in Claude. Approve the installation, then start a new Claude chat and try the sample below. If you move Magpie to a different folder, reconnect from Magpie using the new location.
+
+### Manual Claude Desktop setup
+
 1. Open **Claude Desktop → Settings → Developer → Edit Config**. On macOS, the file is `~/Library/Application Support/Claude/claude_desktop_config.json`.
-2. Copy the JSON from **Magpie → Settings → MCP**. It uses your actual Magpie executable path. If your Claude config already contains `mcpServers`, add just the `magpie` entry under it.
+2. Add the JSON below. If your Claude config already contains `mcpServers`, add just the `magpie` entry under it. If Magpie is installed somewhere else, use its actual executable path.
 
    ```json
    {
@@ -36,8 +40,12 @@ Claude’s web and Cowork remote connectors require an Anthropic-reachable HTTPS
 
 ChatGPT reaches Magpie through an outbound-only OpenAI Secure MCP Tunnel. You need access to custom MCP servers in your ChatGPT account and the required tunnel permissions in your OpenAI Platform organization. Keep the resulting plugin private to your account because this tunnel connects ChatGPT to your Mac’s shared clips. [OpenAI tunnel permissions and setup](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels#permissions-and-access)
 
+In **Magpie → Settings → MCP**, click **Connect to ChatGPT** and copy the setup prompt. Paste it into a local Codex chat on the same Mac. Codex guides you through setting up the private tunnel, approving the ChatGPT plugin, and testing a clip.
+
+### Manual ChatGPT setup
+
 1. In [OpenAI Platform tunnel settings](https://platform.openai.com/settings/organization/tunnels), create a tunnel and associate it with the ChatGPT workspace you will use. Download OpenAI’s [tunnel-client](https://github.com/openai/tunnel-client/releases/latest) for your Mac. Follow the official setup guide to provide the tunnel client's control-plane credential as an environment variable.
-2. On the same Mac and under the same macOS account as Magpie, configure the tunnel with your ID and the stdio command shown in **Magpie → Settings → MCP**. For Magpie installed in Applications, use the command below.
+2. On the same Mac and under the same macOS account as Magpie, configure the tunnel with your ID. For Magpie installed in Applications, use the command below. Update the executable path if Magpie is installed elsewhere.
 
    ```sh
    tunnel-client init \

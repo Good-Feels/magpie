@@ -1,31 +1,16 @@
+import AppKit
 import SwiftUI
 
 struct MCPSettingsView: View {
     @ObservedObject var sharing: MCPSharing
 
-    private var command: String {
-        Bundle.main.executableURL?.path ?? "/Applications/Magpie.app/Contents/MacOS/Magpie"
-    }
+    @State private var preparingClaudeExtension = false
+    @State private var claudeStatus: String?
+    @State private var showClaudeDownload = false
+    @State private var showChatGPTSetup = false
 
-    private var claudeConfig: String {
-        let config = ["mcpServers": ["magpie": ["command": command, "args": ["--mcp-stdio"]]]]
-        guard let data = try? JSONSerialization.data(withJSONObject: config, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]) else { return "" }
-        return String(decoding: data, as: UTF8.self)
-    }
-
-    private func shellQuote(_ value: String) -> String {
-        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
-    }
-
-    private var tunnelCommands: String {
-        let mcpCommand = "\(shellQuote(command)) --mcp-stdio"
-        return """
-        tunnel-client init --sample sample_mcp_stdio_local \\
-          --profile magpie --tunnel-id YOUR_TUNNEL_ID \\
-          --mcp-command \(shellQuote(mcpCommand))
-        tunnel-client doctor --profile magpie --explain
-        tunnel-client run --profile magpie
-        """
+    private var executable: URL {
+        Bundle.main.executableURL ?? URL(fileURLWithPath: "/Applications/Magpie.app/Contents/MacOS/Magpie")
     }
 
     var body: some View {
@@ -35,7 +20,7 @@ struct MCPSettingsView: View {
                     get: { sharing.isEnabled },
                     set: sharing.setEnabled
                 ))
-                Text("Right-click a text clip in Magpie and choose Share with AI. Connected clients can read shared clips and may send the text to their AI provider. Turning sharing off or quitting Magpie clears your shared clips.")
+                Text("Right-click a text clip in Magpie and choose Share with AI. Connected assistants can send shared text to their provider. Turning sharing off or quitting Magpie clears the selection.")
                     .foregroundStyle(.secondary)
                 if case .failed(let message) = sharing.status {
                     Text("Couldn’t start MCP sharing. \(message)")
@@ -55,26 +40,109 @@ struct MCPSettingsView: View {
                 }
             }
 
-            Section("Claude Desktop") {
-                Text("In Claude Desktop, open Settings → Developer → Edit Config. Add the magpie entry to mcpServers, then quit and reopen Claude.")
-                configuration(claudeConfig)
-            }
+            Section("Connect an assistant") {
+                LabeledContent("Claude Desktop") {
+                    Button("Connect to Claude", action: connectClaude)
+                        .disabled(preparingClaudeExtension)
+                }
+                if preparingClaudeExtension {
+                    ProgressView("Preparing the Magpie extension…").controlSize(.small)
+                } else if let claudeStatus {
+                    Text(claudeStatus).foregroundStyle(.secondary)
+                }
+                if showClaudeDownload {
+                    Link("Get Claude Desktop", destination: URL(string: "https://claude.ai/download")!)
+                }
 
-            Section("ChatGPT") {
-                Text("Create a private OpenAI Secure MCP Tunnel, install tunnel-client, and set its runtime key. Replace YOUR_TUNNEL_ID below.")
-                Link("Set up an OpenAI Secure MCP Tunnel", destination: URL(string: "https://developers.openai.com/api/docs/guides/secure-mcp-tunnels")!)
-                configuration(tunnelCommands)
-                Text("With the tunnel running, add a custom MCP server in ChatGPT Plugins. Choose Tunnel and No authentication, then install the plugin for your own account.")
-                Link("Open ChatGPT Plugins", destination: URL(string: "https://chatgpt.com/plugins")!)
+                LabeledContent("ChatGPT") {
+                    Button("Connect to ChatGPT") { showChatGPTSetup = true }
+                }
+
+                Link("Manual setup guide", destination: URL(string: "https://github.com/Good-Feels/magpie/blob/main/docs/MCP.md")!)
             }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showChatGPTSetup) {
+            ChatGPTSetupView(executable: executable)
+        }
     }
 
-    private func configuration(_ value: String) -> some View {
-        Text(value)
-            .font(.system(.caption, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
+    @MainActor
+    private func connectClaude() {
+        guard let claude = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.anthropic.claudefordesktop") else {
+            claudeStatus = "Install Claude Desktop, then try again."
+            showClaudeDownload = true
+            return
+        }
+
+        let command = executable
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+        preparingClaudeExtension = true
+        claudeStatus = nil
+        showClaudeDownload = false
+
+        Task {
+            defer { preparingClaudeExtension = false }
+            do {
+                let installer = try await Task.detached(priority: .userInitiated) {
+                    let cache = try FileManager.default.url(
+                        for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true
+                    ).appendingPathComponent("Magpie/Claude", isDirectory: true)
+                    return try MCPConnectionSetup.claudeExtension(executable: command, version: version, cacheDirectory: cache)
+                }.value
+                _ = try await NSWorkspace.shared.open([installer], withApplicationAt: claude, configuration: .init())
+                claudeStatus = "Approve the Magpie extension in Claude to finish."
+            } catch {
+                claudeStatus = "Couldn’t open the Claude installer. You can connect using the manual setup guide."
+            }
+        }
+    }
+}
+
+private struct ChatGPTSetupView: View {
+    let executable: URL
+    @Environment(\.dismiss) private var dismiss
+    @State private var copyStatus: String?
+
+    private var codex: URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.openai.codex")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Connect to ChatGPT").font(.title2).bold()
+            Text("ChatGPT needs a private OpenAI tunnel to reach Magpie. Codex can guide the setup on this Mac. You’ll need access to add tunnels in OpenAI Platform and to install a custom plugin in ChatGPT.")
+            Text("Switch to **Codex**, open a local chat, and paste the setup prompt. Codex will guide you through any approvals and help test a sample clip.")
+                .foregroundStyle(.secondary)
+
+            if let copyStatus { Text(copyStatus).foregroundStyle(.secondary) }
+            if codex == nil {
+                Link("Get the ChatGPT desktop app", destination: URL(string: "https://chatgpt.com/download")!)
+            }
+
+            HStack {
+                Button("Close") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                Button(codex == nil ? "Copy Setup Prompt" : "Copy Prompt and Open Codex", action: copySetupPrompt)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 460)
+    }
+
+    private func copySetupPrompt() {
+        let item = NSPasteboardItem()
+        item.setString(MCPConnectionSetup.chatGPTSetupPrompt(executable: executable), forType: .string)
+        item.setData(Data(), forType: .init("org.nspasteboard.TransientType"))
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        guard pasteboard.writeObjects([item]) else {
+            copyStatus = "Couldn’t copy the setup prompt."
+            return
+        }
+        copyStatus = "Setup prompt copied."
+        if let codex { NSWorkspace.shared.open(codex) }
     }
 }

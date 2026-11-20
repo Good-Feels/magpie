@@ -35,6 +35,11 @@ Preconditions: exact committed `Package.resolved` files, network or populated de
 | MAG-007-A | `testMAG007UnlimitedPagesReachOldClipsWithIdenticalTimestamps` | Unlimited keeps 1,207 clips. Pages preserve pin and timestamp ordering without gaps or duplicates. Search covers unloaded history and a deleted page boundary does not invalidate the next page. |
 | MAG-007-B | `testMAG007PagedPreviewsPreserveClipActionsAndSharedIDs` | Bounded previews still find full-text matches. Full image, rich-text and legacy file payloads remain available by ID. Pinning, retention and clearing update which IDs exist. |
 | MAG-007-C | `testMAG007SwiftUIScrollLoadsOlderPagesOnDemand` | The production SwiftUI list starts with 60 previews. Scrolling its AppKit document view loads all 1,207 synthetic text and image clips without duplicates. Thumbnail sizing, pin reorder and a rapid search change also pass. |
+| MAG-008-A | `testMAG008ClaudeExtensionPackagesTheCurrentMagpiePath` | The generated extension includes a Claude manifest, stdio launcher and the exact Magpie executable path. Reconnecting from a new path replaces the cached installer. |
+| MAG-008-B | `testMAG008ChatGPTPromptUsesActualPathAndPrivateSetup` | The generated Codex prompt preserves an executable path containing spaces and apostrophes. It uses a private tunnel and a synthetic verification clip. |
+| MAG-008-C | `scripts/test-mcp-clients.py prepare-connection-app`, Claude Desktop | The production connection button opens the installer. The installed extension starts and a new chat reads the proof from beyond the search preview. Revoking the clip makes it disappear from a new search. |
+| MAG-008-D | `scripts/test-mcp-clients.py verify-codex` | A fresh local Codex session runs the installed extension launcher, calls both tools, and returns the same proof. |
+| MAG-008-E | `scripts/test-mcp-clients.py verify-connection-stdio` | The packaged launcher transports the shared clip and honors revocation in a host whose JavaScript streams are separate from its native standard input and output. |
 
 The MCP tests use private temporary home directories, synthetic clips, and bounded subprocess and socket waits. Claude Desktop and ChatGPT account connections are separate from this regression runner.
 
@@ -62,6 +67,27 @@ scripts/test-mcp-clients.py /private/tmp/magpie-qa-run check claude revoked
 ```
 
 Allow up to two minutes for each chat. Record the fixture manifest, client versions, browser and pass, fail, blocked or unrun status. After testing, use `claude-remove` and restart Claude, disconnect the temporary ChatGPT plugin, and stop the tunnel client and fixture. Remove the temporary fixture directory after retaining sanitized evidence.
+
+### Connection buttons
+
+Use a scratch directory from a completed root regression build. Run the saved fixture builder and open the resulting **Magpie Connection QA** app. It uses the production settings and sharing code, a separate sandbox identity, and one synthetic clip. Use a Claude Desktop profile without a Magpie extension already installed. You need a signed-in local Codex CLI and Node.js for the Codex assertion.
+
+```sh
+scripts/test-mcp-clients.py /private/tmp/magpie-button-qa prepare-connection-app --scratch .build
+```
+
+Click **Enable MCP sharing** and **Share Synthetic Clip**. Open **Connect to ChatGPT** and confirm the sheet offers the setup prompt, then close it. Click **Connect to Claude** and approve the installation. Claude should list Magpie as enabled and make `search_shared_clips` and `get_shared_clip` available in a new chat. Ask Claude to search for `magpie-button-fixture`, fetch the returned ID and repeat the `Proof` line. Compare it with the fixture proof file below. Allow up to two minutes per chat.
+
+Run the packaged launcher and Codex assertions before revoking the clip. The first simulates a desktop host with its own JavaScript streams. The second uses the files installed by Claude and configures the server only for that invocation.
+
+```sh
+scripts/test-mcp-clients.py /private/tmp/magpie-button-qa verify-connection-stdio shared
+scripts/test-mcp-clients.py /private/tmp/magpie-button-qa verify-codex \
+  --launcher "$HOME/Library/Application Support/Claude/Claude Extensions/local.mcpb.good-feels-inc.magpie-clipboard/server.js" \
+  --proof-file "$HOME/Library/Containers/com.goodfeels.magpie.qa/Data/tmp/magpie-fixture-proof.txt"
+```
+
+Click **Revoke Synthetic Clip** and confirm a fresh Claude chat gets zero results for the same query. Run `scripts/test-mcp-clients.py /private/tmp/magpie-button-qa verify-connection-stdio revoked`. Uninstall only the test Magpie extension, quit the QA app, and remove its temporary fixture directory. Record the runner and fixture hashes, client versions and results without retaining the proof text or any account data.
 
 The focus test injects notifications and calls the same polling method as the timer. It verifies wiring and ordering without depending on XCTest run-loop scheduling; it is not an OS focus/UI end-to-end test. Source tracking is conservative: legitimate copies immediately after leaving an excluded app may be skipped for one polling interval. It cannot authenticate background writers or unmarked origins.
 
