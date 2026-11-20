@@ -1,0 +1,49 @@
+{
+  "revision": "ae5ad17a6d9aac76ecbbc052c3a9eba25d7226a7",
+  "target": "Isolated sandboxed macOS fixture using Magpie’s production settings, launcher, protocol and transport with one synthetic clip",
+  "environment": "macOS 27.2 arm64",
+  "runner_sha256": "6fadb72726c0f5717064f6205a4a016f8e4eb559d3acc6ca5db4f6eb8e3c8082",
+  "fixture_sha256": "fb03df921e248b8b17aa4f40664f4330839c973c84b5a4c619af851ee6660834",
+  "connection_setup_sha256": "31b6a2f26190b8a993e8ccbd5797dda749051838a7cad4e65dab425b29b43234",
+  "mcp_protocol_sha256": "55c1d626b2038cf5098bf15b8b00261210d457a1b54ad9f8817501488c8a98ef",
+  "native_regressions": {
+    "run": "20261120T172129Z",
+    "result": "passed",
+    "tests": 88
+  },
+  "scenarios": [
+    {
+      "id": "MAG-008-C",
+      "client": "Claude Desktop 6.6395.1, Haiku 5.5",
+      "result": "passed",
+      "observed": "Connect to Claude opened the install dialog. The approved extension discovered two tools. A fresh desktop session searched for and read the synthetic clip and returned the matching proof from beyond the preview. A second session used the tool and returned zero results after revocation."
+    },
+    {
+      "id": "MAG-008-D",
+      "client": "Codex CLI 0.170.0",
+      "result": "passed",
+      "observed": "A fresh ephemeral session used the final QA build through the actual Claude-installed launcher. Both tool calls succeeded and the tool result and answer contained the expected proof."
+    },
+    {
+      "id": "MAG-008-E",
+      "client": "Node.js with separate JavaScript streams",
+      "result": "passed",
+      "observed": "The corrected package initialized and returned the exact proof from the full clip. After revocation, search was empty. An inherited-stdio negative control failed on initialize."
+    }
+  ],
+  "resolved_failures": [
+    "The original installer opened correctly, but Claude timed out on initialize until the launcher forwarded the host's JavaScript streams explicitly.",
+    "The launcher then reached Claude's modern tool discovery. Claude rejected tools/list until Magpie included the required cache fields for modern discovery and tool listing."
+  ],
+  "chatgpt_button": {
+    "setup_sheet": "passed",
+    "new_private_tunnel_setup": "unrun for this revision",
+    "prior_live_chatgpt_receipt": "mcp-clients.json"
+  },
+  "release_candidate": {
+    "version": "1.0.19 (20)",
+    "dmg_sha256": "5657712ede4edf6b0c0f8bb76657ad301e1df1f491f47ff87b8c9937000f54bc",
+    "notarization_submission": "72606fef-e30f-4cdf-be12-bb31aae734ed",
+    "developer_id_gatekeeper_and_sparkle": "passed"
+  }
+}
