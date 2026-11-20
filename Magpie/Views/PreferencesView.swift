@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Tabbed preferences window: General, Exclusions, About.
 struct PreferencesView: View {
+    @EnvironmentObject private var appState: AppState
+
     var body: some View {
         TabView {
             GeneralSettingsView()
@@ -17,6 +18,11 @@ struct PreferencesView: View {
             ShortcutSettingsView()
                 .tabItem {
                     Label("Shortcuts", systemImage: "keyboard")
+                }
+
+            MCPSettingsView(sharing: appState.mcpSharing)
+                .tabItem {
+                    Label("MCP", systemImage: "link")
                 }
 
             AboutView()

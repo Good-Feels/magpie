@@ -41,6 +41,7 @@ final class AppState: ObservableObject {
     let monitor: ClipboardMonitor
     let exclusionManager: ExclusionListManager
     let accessChecker: ClipboardAccessChecker
+    let mcpSharing = MCPSharing()
     private var hasTrackedCurrentSearch = false
 
     // MARK: - Init
@@ -148,6 +149,7 @@ final class AppState: ObservableObject {
 
     func loadClips() {
         clips = (try? repository?.fetchAll()) ?? []
+        mcpSharing.retainClips(in: clips)
         updateDisplayedClips()
     }
 
@@ -169,6 +171,11 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - Actions
+
+    func toggleMCPSharing(for id: Int64) {
+        guard let item = clips.first(where: { $0.id == id }) else { return }
+        mcpSharing.toggle(item)
+    }
 
     /// Copies the given clip's content back to the system clipboard,
     /// triggers the "Copied!" animation, then dismisses the popover.

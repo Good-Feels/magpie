@@ -8,7 +8,7 @@ python3 scripts/test-regressions.py
 
 The saved executable runs both the root suite and the dependent `ClipboardEngine` suite. SwiftPM does not run a dependency package's tests as part of the root suite. Each suite has a ten-minute acquisition/build/test limit; timeout stops its process group. All preexisting app and keeper tests remain. Results, exact commands, source hashes and product-only coverage summaries go in ignored `test-results/<UTC timestamp>/`. Preserve reviewed, sanitized release receipts under `Tests/evidence/`. Use `--help` for scratch/cache/output overrides.
 
-Preconditions: exact committed `Package.resolved` files, network or populated dependency cache, and access to macOS's pasteboard server for uniquely named **test** pasteboards. Never use `run.sh` to test this release: it launches an app against real state. The tests do not launch Magpie, read `NSPasteboard.general`, read production history, register login items, send analytics or install an app. SQLite databases, defaults suites and pasteboards have generated test identities and are cleaned up. Tests reset and restore the **process-local volatile** UserDefaults registration domain, because it is shared across suite names. Do not run this engine XCTest class in parallel within one process.
+Preconditions: exact committed `Package.resolved` files, network or populated dependency cache, access to macOS's pasteboard server for uniquely named **test** pasteboards, and permission to bind a Unix socket under `/private/tmp`. Never use `run.sh` to test this release: it launches an app against real state. The tests start only Magpie’s headless `--mcp-stdio` mode. They do not start the graphical app, read `NSPasteboard.general`, read production history, register login items, send analytics or install an app. SQLite databases, defaults suites and pasteboards have generated test identities and are cleaned up. Tests reset and restore the **process-local volatile** UserDefaults registration domain, because it is shared across suite names. Do not run this engine XCTest class in parallel within one process.
 
 ## Scenarios and expected results
 
@@ -28,6 +28,37 @@ Preconditions: exact committed `Package.resolved` files, network or populated de
 | MAG-004-B | `testMAG004ChangedSecondFileAndOrderAreNotDeduplicated`, `testFullPayloadDedupPreservesFormattingAndContentType` | Full payload identity controls dedup; changed second file/order/format survives; exact consecutive duplicates are skipped |
 | MAG-004-C | `testMAG004LegacySingleFileAndMalformedGroupFallback`, `testMAG004V1MigrationPreservesLegacyPinnedSingleFile` | Nullable v2 migration preserves v1 rows/pins; malformed grouped metadata falls back to the legacy single path |
 | MAG-004-D | `testMAG004InvalidPayloadDoesNotEraseDestination` | Empty restored payload leaves the destination intact; a non-file URL advertised as a file is rejected |
+| MAG-006-A | `testMAG006SharedTextCanBeReadAndRevokedOverStdio` | The built binary initializes, lists two read-only tools, and searches and fetches only explicitly shared synthetic text via the app’s Unix listener. Revocation, deletion and disabling remove access. |
+| MAG-006-B | `testMAG006ModernDiscoveryAndInvalidRequestsOverStdio` | The built binary answers modern discovery, rejects invalid JSON, an unsupported version and an unknown write tool. |
+| MAG-006-C | `scripts/test-mcp-clients.py`, Claude Desktop | A new Claude Desktop chat calls both read-only tools and receives the synthetic clip’s proof line. A fresh chat gets zero results after revocation. |
+| MAG-006-D | `scripts/test-mcp-clients.py`, ChatGPT in Chrome through Secure MCP Tunnel | ChatGPT calls both read-only tools through the private tunnel and receives the proof line. A fresh chat gets zero results after revocation. |
+
+The MCP tests use private temporary home directories, synthetic clips, and bounded subprocess and socket waits. Claude Desktop and ChatGPT account connections are separate from this regression runner.
+
+### Live MCP client tests
+
+Build the current Magpie executable with SwiftPM. Start the fixture in a dedicated terminal using an unused short directory name. The fixture requires permission to bind a Unix socket and exits after 30 minutes. It runs only the production MCP protocol and local transport with synthetic sample clips. The build’s own `--mcp-stdio` mode handles client connections.
+
+```sh
+scripts/test-mcp-clients.py /private/tmp/magpie-qa-run serve --bridge .build/debug/Magpie
+```
+
+For Claude Desktop, run `scripts/test-mcp-clients.py /private/tmp/magpie-qa-run claude-install` and quit and reopen Claude. For ChatGPT, use an isolated private tunnel and plugin according to the [MCP setup guide](MCP.md). Set the tunnel’s stdio command to the following, with your actual fixture and executable paths.
+
+```sh
+/usr/bin/env CFFIXED_USER_HOME=/private/tmp/magpie-qa-run /absolute/path/to/Magpie --mcp-stdio
+```
+
+Use the unique query printed for each client. In a fresh chat, ask that client to search for the exact query and call `get_shared_clip` with the returned ID. The displayed proof line comes from beyond the search preview. Run the following assertions for each client, replacing `claude` with `chatgpt` for Chrome.
+
+```sh
+scripts/test-mcp-clients.py /private/tmp/magpie-qa-run check claude shared
+scripts/test-mcp-clients.py /private/tmp/magpie-qa-run revoke claude
+# Ask the same client to search for the same query in a fresh chat.
+scripts/test-mcp-clients.py /private/tmp/magpie-qa-run check claude revoked
+```
+
+Allow up to two minutes for each chat. Record the fixture manifest, client versions, browser and pass, fail, blocked or unrun status. After testing, use `claude-remove` and restart Claude, disconnect the temporary ChatGPT plugin, and stop the tunnel client and fixture. Remove the temporary fixture directory after retaining sanitized evidence.
 
 The focus test injects notifications and calls the same polling method as the timer. It verifies wiring and ordering without depending on XCTest run-loop scheduling; it is not an OS focus/UI end-to-end test. Source tracking is conservative: legitimate copies immediately after leaving an excluded app may be skipped for one polling interval. It cannot authenticate background writers or unmarked origins.
 

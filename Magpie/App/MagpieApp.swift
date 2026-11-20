@@ -3,6 +3,17 @@ import AppKit
 import ClipboardEngine
 
 @main
+enum MagpieEntryPoint {
+    @MainActor
+    static func main() {
+        if CommandLine.arguments.dropFirst().first == "--mcp-stdio" {
+            MCPStdioBridge.run()
+        } else {
+            MagpieApp.main()
+        }
+    }
+}
+
 struct MagpieApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 

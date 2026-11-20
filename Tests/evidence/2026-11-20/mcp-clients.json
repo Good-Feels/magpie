@@ -1,0 +1,41 @@
+{
+  "revision": "03c1298ea8108d4531d3523e03091c2ab85fd4c8",
+  "runner_sha256": "6816a552f65a0526517600b694e03e7ee01b9f89dff23ac1235294a5aaafc99a",
+  "fixture_sha256": "a329bd0f0b28f0d265861a75b2b1a58d5ef5ff61b4d4107f7ef27d2ade840a0b",
+  "bridge_sha256": "8aa0294d63d791e380add9effc4b10f38c4a2138f53dcc716bccbb67ec5ed51a",
+  "environment": "macOS-27.2-arm64-arm-64bit",
+  "bridge": "/Users/jason/Development/CopyOfCopyClip/.build/mcp-regression-root/out/Products/Debug/Magpie",
+  "verified_at": "2026-11-20T13:43:47.626577+00:00",
+  "target": "isolated synthetic fixture using the production MCP protocol, transport and built Magpie stdio bridge",
+  "tested_production_sources_sha256": {
+    "Magpie/MCP/MCPLocalTransport.swift": "a08f6db93127eeb3b1d1379ec0b0805f7b5b477c77d1e3c209ae503b44b2727a",
+    "Magpie/MCP/MCPProtocol.swift": "9661c58dbe2613ae11a8ceb6f353d2967fe0bed271a84988aca3c01abefaaea9",
+    "Magpie/MCP/MCPSharing.swift": "364088ab89c1b323ce69f7a1676481f1236fd4e07bc9c68ed4418fc0b6995804"
+  },
+  "scenarios": [
+    {
+      "id": "MAG-006-C",
+      "client": "Claude Desktop 6.6395.1",
+      "browser": null,
+      "result": "passed",
+      "observed_tool_replies": {
+        "shared-search": true,
+        "shared-fetch": true,
+        "revoked-empty-search": true
+      },
+      "displayed_proof_line": true
+    },
+    {
+      "id": "MAG-006-D",
+      "client": "ChatGPT web with OpenAI tunnel-client 0.0.21",
+      "browser": "Google Chrome 157.0.8103.79",
+      "result": "passed",
+      "observed_tool_replies": {
+        "shared-search": true,
+        "shared-fetch": true,
+        "revoked-empty-search": true
+      },
+      "displayed_proof_line": true
+    }
+  ]
+}

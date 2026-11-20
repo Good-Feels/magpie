@@ -53,7 +53,8 @@ You have something important on your clipboard. Now you need to copy something e
 - **App exclusions** — Exclude password managers and other sensitive apps
 - **Lightweight** — Lives in your menu bar, uses SQLite, under 2MB
 - **Auto-updates** — Direct downloads update automatically via Sparkle
-- **Private** — Clipboard history stays on your Mac. Optional anonymous usage metrics, no accounts
+- **Private** — Clipboard history is stored on your Mac. Optional anonymous usage metrics, no Magpie account
+- **MCP sharing** — Share individual text clips with Claude Desktop, ChatGPT, and other MCP clients
 
 ## Install
 
@@ -89,6 +90,10 @@ Requires Xcode 15+ and macOS 13+.
 | Delete a clip | Right-click → Delete |
 | Settings | Click the ⚙ gear icon in the popover footer |
 | Quit | Click "Quit" in the popover footer |
+
+## Connect an AI Client
+
+Enable sharing in **Magpie → Settings → MCP**, then right-click the text clips you want an assistant to read. See the [MCP setup guide](docs/MCP.md) for Claude Desktop, ChatGPT via OpenAI Secure MCP Tunnel, Claude Code, and Codex.
 
 ## Tech Stack
 

@@ -5,6 +5,7 @@ import ClipboardEngine
 /// and a footer with Settings / Quit.
 struct ClipboardHistoryView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject private var mcpSharing: MCPSharing
 
     @State private var hoveredClipID: Int64?
 
@@ -71,10 +72,16 @@ struct ClipboardHistoryView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(appState.displayedClips) { clip in
+                    let isShared = mcpSharing.contains(clip.id)
+                    let toggleSharing: (() -> Void)? = clip.id.flatMap { id in
+                        guard mcpSharing.canToggle(clip) else { return nil }
+                        return { appState.toggleMCPSharing(for: id) }
+                    }
                     ClipItemRow(
                         item: clip,
                         isHovered: hoveredClipID == clip.id,
                         showCopied: appState.copiedItemID == clip.id,
+                        isShared: isShared,
                         onSelect: {
                             appState.copyToClipboard(clip)
                         },
@@ -83,7 +90,8 @@ struct ClipboardHistoryView: View {
                         },
                         onTogglePin: {
                             appState.togglePin(clip)
-                        }
+                        },
+                        onToggleSharing: toggleSharing
                     )
                     .onHover { isHovering in
                         hoveredClipID = isHovering ? clip.id : nil
